@@ -19,6 +19,7 @@
 package org.apache.zookeeper.server;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Collections;
@@ -28,6 +29,8 @@ import org.apache.jute.OutputArchive;
 import org.apache.jute.Record;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.data.StatPersisted;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class contains the data for a node in the data tree.
@@ -37,6 +40,7 @@ import org.apache.zookeeper.data.StatPersisted;
  * 
  */
 public class DataNode implements Record {
+    private static final Logger LOG = LoggerFactory.getLogger(DataNode.class);
     /** the data for this datanode */
     byte data[];
 
@@ -80,6 +84,11 @@ public class DataNode implements Record {
         this.data = data;
         this.acl = acl;
         this.stat = stat;
+        try {
+            LOG.info("DataNode->data:{}",new String(data,"utf-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
