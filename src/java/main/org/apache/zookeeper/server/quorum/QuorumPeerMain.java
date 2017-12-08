@@ -181,7 +181,7 @@ public class QuorumPeerMain {
           quorumPeer.setQuorumListenOnAllIPs(config.getQuorumListenOnAllIPs());
           
           quorumPeer.start();
-          quorumPeer.join();
+          quorumPeer.join();//main线程等待quorumPeer线程退出
       } catch (InterruptedException e) {
           // warn, but generally this is ok
           LOG.warn("Quorum Peer interrupted", e);

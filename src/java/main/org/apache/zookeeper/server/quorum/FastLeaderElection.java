@@ -606,8 +606,7 @@ public class FastLeaderElection implements Election {
 
     private void leaveInstance(Vote v) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("About to leave FLE instance: leader={}, zxid=0x{}, my id={}, my state={}",
-                    v.getId(), Long.toHexString(v.getZxid()), self.getId(), self.getPeerState());
+            LOG.debug("About to leave FLE instance: leader={}, zxid=0x{}, my id={}, my state={}", v.getId(), Long.toHexString(v.getZxid()), self.getId(), self.getPeerState());
         }
         recvqueue.clear();
     }
@@ -876,6 +875,11 @@ public class FastLeaderElection implements Election {
                      */
                     switch (n.state) {
                         case LOOKING:
+                            /**
+                             * 1.接收到别的节点发过来的投票之后，和本地的投票做比较，如果比本地的大就更新本地投票。
+                             * 2.如果recv_set中的节点的投票结果和本地的投票结果一样就往SyncedLearnerTracker中QuorumVerifierAcksetPair的ackset增加一个值。
+                             * 3.如果ackset过半，就说明选举结束。
+                             */
                             // If notification > current, replace and send messages out
                             if (n.electionEpoch > logicalclock.get()) {
                                 logicalclock.set(n.electionEpoch);
@@ -905,7 +909,11 @@ public class FastLeaderElection implements Election {
                             recv_set.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
 
                             if (termPredicate(recv_set, new Vote(proposedLeader, proposedZxid, logicalclock.get(), proposedEpoch))) {
-                                // Verify if there is any change in the proposed leader
+                                /**
+                                 *  1.Verify if there is any change in the proposed leader
+                                 *  2.类似于2MSL吧，并不能完全避免没有收到主节点更新
+                                 *  3.最长等待200ms
+                                  */
                                 while ((n = recvqueue.poll(finalizeWait, TimeUnit.MILLISECONDS)) != null) {
                                     if (totalOrderPredicate(n.leader, n.zxid, n.peerEpoch, proposedLeader, proposedZxid, proposedEpoch)) {
                                         recvqueue.put(n);
@@ -936,12 +944,8 @@ public class FastLeaderElection implements Election {
                          */
                             if (n.electionEpoch == logicalclock.get()) {
                                 recv_set.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
-                                if (termPredicate(recv_set, new Vote(n.leader,
-                                        n.zxid, n.electionEpoch, n.peerEpoch, n.state))
-                                        && checkLeader(out_of_election, n.leader, n.electionEpoch)) {
-                                    self.setPeerState((n.leader == self.getId()) ?
-                                            ServerState.LEADING : learningState());
-
+                                if (termPredicate(recv_set, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch, n.state)) && checkLeader(out_of_election, n.leader, n.electionEpoch)) {
+                                    self.setPeerState((n.leader == self.getId()) ? ServerState.LEADING : learningState());
                                     Vote endVote = new Vote(n.leader, n.zxid, n.peerEpoch);
                                     leaveInstance(endVote);
                                     return endVote;
@@ -962,15 +966,12 @@ public class FastLeaderElection implements Election {
                          * 
                          * @see https://issues.apache.org/jira/browse/ZOOKEEPER-1732
                          */
-                            out_of_election.put(n.sid, new Vote(n.leader,
-                                    IGNOREVALUE, IGNOREVALUE, n.peerEpoch, n.state));
-                            if (termPredicate(out_of_election, new Vote(n.leader,
-                                    IGNOREVALUE, IGNOREVALUE, n.peerEpoch, n.state))
-                                    && checkLeader(out_of_election, n.leader, IGNOREVALUE)) {
+                            out_of_election.put(n.sid, new Vote(n.leader, IGNOREVALUE, IGNOREVALUE, n.peerEpoch, n.state));
+                            if (termPredicate(out_of_election, new Vote(n.leader, IGNOREVALUE, IGNOREVALUE, n.peerEpoch, n.state)) &&
+                                    checkLeader(out_of_election, n.leader, IGNOREVALUE)) {
                                 synchronized (this) {
                                     logicalclock.set(n.electionEpoch);
-                                    self.setPeerState((n.leader == self.getId()) ?
-                                            ServerState.LEADING : learningState());
+                                    self.setPeerState((n.leader == self.getId()) ? ServerState.LEADING : learningState());
                                 }
                                 Vote endVote = new Vote(n.leader, n.zxid, n.peerEpoch);
                                 leaveInstance(endVote);
@@ -978,8 +979,7 @@ public class FastLeaderElection implements Election {
                             }
                             break;
                         default:
-                            LOG.warn("Notification state unrecoginized: " + n.state
-                                    + " (n.state), " + n.sid + " (n.sid)");
+                            LOG.warn("Notification state unrecoginized: " + n.state + " (n.state), " + n.sid + " (n.sid)");
                             break;
                     }
                 } else {
