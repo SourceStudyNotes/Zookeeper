@@ -1,31 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.quorum;
-
-import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Properties;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.PortAssignment;
@@ -38,9 +22,29 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Properties;
+
+import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
+import static org.junit.Assert.assertEquals;
+
 public class ReconfigLegacyTest extends QuorumPeerTestBase {
 
     private static final int SERVER_COUNT = 3;
+
+    public static Properties readPropertiesFromFile(File file) throws IOException {
+        Properties cfg = new Properties();
+        FileInputStream in = new FileInputStream(file);
+        try {
+            cfg.load(in);
+        } finally {
+            in.close();
+        }
+        return cfg;
+    }
 
     @Before
     public void setup() {
@@ -78,7 +82,7 @@ public class ReconfigLegacyTest extends QuorumPeerTestBase {
         for (int i = 0; i < SERVER_COUNT; i++) {
             mt[i] = new MainThread(i, clientPorts[i], currentQuorumCfgSection, false);
             // check that a dynamic configuration file doesn't exist
-            Assert.assertEquals( mt[i].getDynamicFiles().length, 0 );
+            Assert.assertEquals(mt[i].getDynamicFiles().length, 0);
             mt[i].start();
         }
         // Check that the servers are up, have the right config and can process operations.
@@ -91,7 +95,7 @@ public class ReconfigLegacyTest extends QuorumPeerTestBase {
                     ClientBase.CONNECTION_TIMEOUT, this);
             File[] dynamicFiles = mt[i].getDynamicFiles();
 
-            Assert.assertTrue( dynamicFiles.length== 1 );
+            Assert.assertTrue(dynamicFiles.length == 1);
             ReconfigTest.testServerHasConfig(zk[i], allServers, null);
             // check that static config file doesn't include membership info
             // and has a pointer to the dynamic configuration file
@@ -163,11 +167,11 @@ public class ReconfigLegacyTest extends QuorumPeerTestBase {
             electionPorts[i] = PortAssignment.unique();
 
             String server = "server." + i + "=localhost:" + quorumPorts[i]
-                    +":" + electionPorts[i] + ":participant";
+                    + ":" + electionPorts[i] + ":participant";
             allServers.add(server);
             sb.append(server + "\n");
 
-            if(i == changedServerId) {
+            if (i == changedServerId) {
                 newServers.add(server + ";0.0.0.0:" + newClientPort);
             } else {
                 newServers.add(server);
@@ -227,17 +231,6 @@ public class ReconfigLegacyTest extends QuorumPeerTestBase {
         }
     }
 
-    public static Properties readPropertiesFromFile(File file) throws IOException {
-        Properties cfg = new Properties();
-        FileInputStream in = new FileInputStream(file);
-        try {
-            cfg.load(in);
-        } finally {
-            in.close();
-        }
-        return cfg;
-    }
-
     /**
      * Test case for https://issues.apache.org/jira/browse/ZOOKEEPER-2244
      *
@@ -272,12 +265,12 @@ public class ReconfigLegacyTest extends QuorumPeerTestBase {
                             CONNECTION_TIMEOUT));
         }
 
-        CountdownWatcher watch1 = new CountdownWatcher();        
+        CountdownWatcher watch1 = new CountdownWatcher();
         ZooKeeper zk = new ZooKeeper("127.0.0.1:" + clientPorts[0],
                 ClientBase.CONNECTION_TIMEOUT, watch1);
         watch1.waitForConnected(ClientBase.CONNECTION_TIMEOUT);
 
-        String zNodePath="/serverRestartTest";
+        String zNodePath = "/serverRestartTest";
         String data = "originalData";
         zk.create(zNodePath, data.getBytes(), Ids.OPEN_ACL_UNSAFE,
                 CreateMode.PERSISTENT);

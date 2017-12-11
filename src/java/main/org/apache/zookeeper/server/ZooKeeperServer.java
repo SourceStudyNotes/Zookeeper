@@ -65,12 +65,17 @@ import javax.security.sasl.SaslException;
 
 
 /**
- * This class implements a simple standalone ZooKeeperServer. It sets up the
- * following chain of RequestProcessors to process requests:
- * PrepRequestProcessor -> SyncRequestProcessor -> FinalRequestProcessor
+ * This class implements a simple standalone ZooKeeperServer. It sets up the following chain of RequestProcessors to process requests: PrepRequestProcessor -> SyncRequestProcessor ->
+ * FinalRequestProcessor
  */
 public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
+    public static final int DEFAULT_TICK_TIME = 3000;
+    public final static Exception ok = new Exception("No prob");
     protected static final Logger LOG;
+    /**
+     * This is the secret that we use to generate passwords, for the moment it is more of a sanity check.
+     */
+    static final private long superSecret = 0XB3415C00L;
 
     static {
         LOG = LoggerFactory.getLogger(ZooKeeperServer.class);
@@ -78,63 +83,41 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         Environment.logEnv("Server environment:", LOG);
     }
 
-    protected ZooKeeperServerBean jmxServerBean;
-    protected DataTreeBean jmxDataTreeBean;
-
-    public static final int DEFAULT_TICK_TIME = 3000;
-    protected int tickTime = DEFAULT_TICK_TIME;
-    /** value of -1 indicates unset, use default */
-    protected int minSessionTimeout = -1;
-    /** value of -1 indicates unset, use default */
-    protected int maxSessionTimeout = -1;
-    protected SessionTracker sessionTracker;
-    private FileTxnSnapLog txnLogFactory = null;
-    private ZKDatabase zkDb;
-    private final AtomicLong hzxid = new AtomicLong(0);
-    public final static Exception ok = new Exception("No prob");
-    protected RequestProcessor firstProcessor;
-    protected volatile State state = State.INITIAL;
-
-    enum State {
-        INITIAL, RUNNING, SHUTDOWN;
-    }
-
-    /**
-     * This is the secret that we use to generate passwords, for the moment it
-     * is more of a sanity check.
-     */
-    static final private long superSecret = 0XB3415C00L;
-
-    private final AtomicInteger requestsInProcess = new AtomicInteger(0);
     final List<ChangeRecord> outstandingChanges = new ArrayList<ChangeRecord>();
     // this data structure must be accessed under the outstandingChanges lock
     final HashMap<String, ChangeRecord> outstandingChangesForPath =
             new HashMap<String, ChangeRecord>();
-
-    protected ServerCnxnFactory serverCnxnFactory;
-    protected ServerCnxnFactory secureServerCnxnFactory;
-
+    private final AtomicLong hzxid = new AtomicLong(0);
+    private final AtomicInteger requestsInProcess = new AtomicInteger(0);
     private final ServerStats serverStats;
     private final ZooKeeperServerListener listener = new ZooKeeperServerListenerImpl();
-
-    void removeCnxn(ServerCnxn cnxn) {
-        zkDb.removeCnxn(cnxn);
-    }
-
+    protected ZooKeeperServerBean jmxServerBean;
+    protected DataTreeBean jmxDataTreeBean;
+    protected int tickTime = DEFAULT_TICK_TIME;
     /**
-     * Creates a ZooKeeperServer instance. Nothing is setup, use the setX
-     * methods to prepare the instance (eg datadir, datalogdir, ticktime,
-     * builder, etc...)
-     *
-     * @throws IOException
+     * value of -1 indicates unset, use default
+     */
+    protected int minSessionTimeout = -1;
+    /**
+     * value of -1 indicates unset, use default
+     */
+    protected int maxSessionTimeout = -1;
+    protected SessionTracker sessionTracker;
+    protected RequestProcessor firstProcessor;
+    protected volatile State state = State.INITIAL;
+    protected ServerCnxnFactory serverCnxnFactory;
+    protected ServerCnxnFactory secureServerCnxnFactory;
+    private FileTxnSnapLog txnLogFactory = null;
+    private ZKDatabase zkDb;
+    /**
+     * Creates a ZooKeeperServer instance. Nothing is setup, use the setX methods to prepare the instance (eg datadir, datalogdir, ticktime, builder, etc...)
      */
     public ZooKeeperServer() {
         serverStats = new ServerStats(this);
     }
 
     /**
-     * Creates a ZooKeeperServer instance. It sets everything up, but doesn't
-     * actually start listening for clients until run() is invoked.
+     * Creates a ZooKeeperServer instance. It sets everything up, but doesn't actually start listening for clients until run() is invoked.
      *
      * @param dataDir the directory to put the data
      */
@@ -156,12 +139,49 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     /**
      * creates a zookeeperserver instance.
+     *
      * @param txnLogFactory the file transaction snapshot logging class
-     * @param tickTime the ticktime for the server
-     * @throws IOException
+     * @param tickTime      the ticktime for the server
      */
     public ZooKeeperServer(FileTxnSnapLog txnLogFactory, int tickTime) throws IOException {
         this(txnLogFactory, tickTime, -1, -1, new ZKDatabase(txnLogFactory));
+    }
+
+    /**
+     * This constructor is for backward compatibility with the existing unit test code. It defaults to FileLogProvider persistence provider.
+     */
+    public ZooKeeperServer(File snapDir, File logDir, int tickTime)
+            throws IOException {
+        this(new FileTxnSnapLog(snapDir, logDir),
+                tickTime);
+    }
+
+    /**
+     * Default constructor, relies on the config for its agrument values
+     */
+    public ZooKeeperServer(FileTxnSnapLog txnLogFactory)
+            throws IOException {
+        this(txnLogFactory, DEFAULT_TICK_TIME, -1, -1, new ZKDatabase(txnLogFactory));
+    }
+
+    public static int getSnapCount() {
+        String sc = System.getProperty("zookeeper.snapCount");
+        try {
+            int snapCount = Integer.parseInt(sc);
+
+            // snapCount must be 2 or more. See org.apache.zookeeper.server.SyncRequestProcessor
+            if (snapCount < 2) {
+                LOG.warn("SnapCount should be 2 or more. Now, snapCount is reset to 2");
+                snapCount = 2;
+            }
+            return snapCount;
+        } catch (Exception e) {
+            return 100000;
+        }
+    }
+
+    void removeCnxn(ServerCnxn cnxn) {
+        zkDb.removeCnxn(cnxn);
     }
 
     public ServerStats serverStats() {
@@ -207,28 +227,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     /**
-     * This constructor is for backward compatibility with the existing unit
-     * test code.
-     * It defaults to FileLogProvider persistence provider.
-     */
-    public ZooKeeperServer(File snapDir, File logDir, int tickTime)
-            throws IOException {
-        this(new FileTxnSnapLog(snapDir, logDir),
-                tickTime);
-    }
-
-    /**
-     * Default constructor, relies on the config for its agrument values
-     *
-     * @throws IOException
-     */
-    public ZooKeeperServer(FileTxnSnapLog txnLogFactory)
-            throws IOException {
-        this(txnLogFactory, DEFAULT_TICK_TIME, -1, -1, new ZKDatabase(txnLogFactory));
-    }
-
-    /**
      * get the zookeeper database for this server
+     *
      * @return the zookeeper database for this server
      */
     public ZKDatabase getZKDatabase() {
@@ -237,14 +237,13 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     /**
      * set the zkdatabase for this zookeeper server
-     * @param zkDb
      */
     public void setZKDatabase(ZKDatabase zkDb) {
         this.zkDb = zkDb;
     }
 
     /**
-     *  Restore sessions and data
+     * Restore sessions and data
      */
     public void loadData() throws IOException, InterruptedException {
         /*
@@ -333,16 +332,16 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return hzxid.get();
     }
 
+    public void setZxid(long zxid) {
+        hzxid.set(zxid);
+    }
+
     public SessionTracker getSessionTracker() {
         return sessionTracker;
     }
 
     long getNextZxid() {
         return hzxid.incrementAndGet();
-    }
-
-    public void setZxid(long zxid) {
-        hzxid.set(zxid);
     }
 
     private void close(long sessionId) {
@@ -376,14 +375,6 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         LOG.info("Expiring session 0x" + Long.toHexString(sessionId)
                 + ", timeout of " + session.getTimeout() + "ms exceeded");
         close(sessionId);
-    }
-
-    public static class MissingSessionException extends IOException {
-        private static final long serialVersionUID = 7467414635467261007L;
-
-        public MissingSessionException(String msg) {
-            super(msg);
-        }
     }
 
     void touch(ServerCnxn cnxn) throws MissingSessionException {
@@ -452,20 +443,6 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     public ZooKeeperServerListener getZooKeeperServerListener() {
         return listener;
-    }
-
-    /**
-     * Default listener implementation, which will do a graceful shutdown on
-     * notification
-     */
-    private class ZooKeeperServerListenerImpl implements
-            ZooKeeperServerListener {
-
-        @Override
-        public void notifyStopping(String threadName, int exitCode) {
-            LOG.info("Thread {} exits, error code {}", threadName, exitCode);
-            shutdown();
-        }
     }
 
     protected void createSessionTracker() {
@@ -538,40 +515,6 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return requestsInProcess.get();
     }
 
-    /**
-     * This structure is used to facilitate information sharing between PrepRP
-     * and FinalRP.
-     */
-    static class ChangeRecord {
-        ChangeRecord(long zxid, String path, StatPersisted stat, int childCount,
-                     List<ACL> acl) {
-            this.zxid = zxid;
-            this.path = path;
-            this.stat = stat;
-            this.childCount = childCount;
-            this.acl = acl;
-        }
-
-        long zxid;
-
-        String path;
-
-        StatPersisted stat; /* Make sure to create a new object when changing */
-
-        int childCount;
-
-        List<ACL> acl; /* Make sure to create a new object when changing */
-
-        ChangeRecord duplicate(long zxid) {
-            StatPersisted stat = new StatPersisted();
-            if (this.stat != null) {
-                DataTree.copyStatPersisted(this.stat, stat);
-            }
-            return new ChangeRecord(zxid, path, stat, childCount,
-                    acl == null ? new ArrayList<ACL>() : new ArrayList<ACL>(acl));
-        }
-    }
-
     byte[] generatePasswd(long id) {
         Random r = new Random(id ^ superSecret);
         byte p[] = new byte[16];
@@ -603,9 +546,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     /**
      * set the owner of this session as owner
-     * @param id the session id
+     *
+     * @param id    the session id
      * @param owner the owner of the session
-     * @throws SessionExpiredException
      */
     public void setOwner(long id, Object owner) throws SessionExpiredException {
         sessionTracker.setOwner(id, owner);
@@ -697,11 +640,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     /**
-     * If the underlying Zookeeper server support local session, this method
-     * will set a isLocalSession to true if a request is associated with
-     * a local session.
-     *
-     * @param si
+     * If the underlying Zookeeper server support local session, this method will set a isLocalSession to true if a request is associated with a local session.
      */
     protected void setLocalSessionFlag(Request si) {
     }
@@ -746,22 +685,6 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         }
     }
 
-    public static int getSnapCount() {
-        String sc = System.getProperty("zookeeper.snapCount");
-        try {
-            int snapCount = Integer.parseInt(sc);
-
-            // snapCount must be 2 or more. See org.apache.zookeeper.server.SyncRequestProcessor
-            if (snapCount < 2) {
-                LOG.warn("SnapCount should be 2 or more. Now, snapCount is reset to 2");
-                snapCount = 2;
-            }
-            return snapCount;
-        } catch (Exception e) {
-            return 100000;
-        }
-    }
-
     public int getGlobalOutstandingLimit() {
         String sc = System.getProperty("zookeeper.globalOutstandingLimit");
         int limit;
@@ -773,12 +696,12 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return limit;
     }
 
-    public void setServerCnxnFactory(ServerCnxnFactory factory) {
-        serverCnxnFactory = factory;
-    }
-
     public ServerCnxnFactory getServerCnxnFactory() {
         return serverCnxnFactory;
+    }
+
+    public void setServerCnxnFactory(ServerCnxnFactory factory) {
+        serverCnxnFactory = factory;
     }
 
     public void setSecureServerCnxnFactory(ServerCnxnFactory factory) {
@@ -786,25 +709,21 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     /**
-     * return the last proceesed id from the
-     * datatree
+     * return the last proceesed id from the datatree
      */
     public long getLastProcessedZxid() {
         return zkDb.getDataTreeLastProcessedZxid();
     }
 
     /**
-     * return the outstanding requests
-     * in the queue, which havent been
-     * processed yet
+     * return the outstanding requests in the queue, which havent been processed yet
      */
     public long getOutstandingRequests() {
         return getInProcess();
     }
 
     /**
-     * return the total number of client connections that are alive
-     * to this server
+     * return the total number of client connections that are alive to this server
      */
     public int getNumAliveConnections() {
         int numAliveConnections = 0;
@@ -821,11 +740,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
     }
 
     /**
-     * trunccate the log to get in sync with others
-     * if in a quorum
-     * @param zxid the zxid that it needs to get in sync
-     * with others
-     * @throws IOException
+     * trunccate the log to get in sync with others if in a quorum
+     *
+     * @param zxid the zxid that it needs to get in sync with others
      */
     public void truncateLog(long zxid) throws IOException {
         this.zkDb.truncateLog(zxid);
@@ -866,7 +783,9 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return secureServerCnxnFactory != null ? secureServerCnxnFactory.getLocalPort() : -1;
     }
 
-    /** Maximum number of connections allowed from particular host (ip) */
+    /**
+     * Maximum number of connections allowed from particular host (ip)
+     */
     public int getMaxClientCnxnsPerHost() {
         if (serverCnxnFactory != null) {
             return serverCnxnFactory.getMaxClientCnxnsPerHost();
@@ -877,12 +796,12 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return -1;
     }
 
-    public void setTxnLogFactory(FileTxnSnapLog txnLog) {
-        this.txnLogFactory = txnLog;
-    }
-
     public FileTxnSnapLog getTxnLogFactory() {
         return this.txnLogFactory;
+    }
+
+    public void setTxnLogFactory(FileTxnSnapLog txnLog) {
+        this.txnLogFactory = txnLog;
     }
 
     public String getState() {
@@ -1128,6 +1047,60 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     public Map<Long, Set<Long>> getSessionExpiryMap() {
         return sessionTracker.getSessionExpiryMap();
+    }
+
+    enum State {
+        INITIAL, RUNNING, SHUTDOWN;
+    }
+
+    public static class MissingSessionException extends IOException {
+        private static final long serialVersionUID = 7467414635467261007L;
+
+        public MissingSessionException(String msg) {
+            super(msg);
+        }
+    }
+
+    /**
+     * This structure is used to facilitate information sharing between PrepRP and FinalRP.
+     */
+    static class ChangeRecord {
+        long zxid;
+        String path;
+        StatPersisted stat; /* Make sure to create a new object when changing */
+        int childCount;
+        List<ACL> acl; /* Make sure to create a new object when changing */
+
+        ChangeRecord(long zxid, String path, StatPersisted stat, int childCount,
+                     List<ACL> acl) {
+            this.zxid = zxid;
+            this.path = path;
+            this.stat = stat;
+            this.childCount = childCount;
+            this.acl = acl;
+        }
+
+        ChangeRecord duplicate(long zxid) {
+            StatPersisted stat = new StatPersisted();
+            if (this.stat != null) {
+                DataTree.copyStatPersisted(this.stat, stat);
+            }
+            return new ChangeRecord(zxid, path, stat, childCount,
+                    acl == null ? new ArrayList<ACL>() : new ArrayList<ACL>(acl));
+        }
+    }
+
+    /**
+     * Default listener implementation, which will do a graceful shutdown on notification
+     */
+    private class ZooKeeperServerListenerImpl implements
+            ZooKeeperServerListener {
+
+        @Override
+        public void notifyStopping(String threadName, int exitCode) {
+            LOG.info("Thread {} exits, error code {}", threadName, exitCode);
+            shutdown();
+        }
     }
 
 }

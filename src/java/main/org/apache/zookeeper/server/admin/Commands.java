@@ -1,29 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.admin;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.zookeeper.Environment;
 import org.apache.zookeeper.Environment.Entry;
@@ -40,6 +26,13 @@ import org.apache.zookeeper.server.util.OSMXBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Class containing static methods for registering and running Commands, as well
  * as default Command definitions.
@@ -53,6 +46,29 @@ public class Commands {
     /** Maps command names to Command instances */
     private static Map<String, Command> commands = new HashMap<String, Command>();
     private static Set<String> primaryNames = new HashSet<String>();
+
+    static {
+        registerCommand(new CnxnStatResetCommand());
+        registerCommand(new ConfCommand());
+        registerCommand(new ConsCommand());
+        registerCommand(new DirsCommand());
+        registerCommand(new DumpCommand());
+        registerCommand(new EnvCommand());
+        registerCommand(new GetTraceMaskCommand());
+        registerCommand(new IsroCommand());
+        registerCommand(new MonitorCommand());
+        registerCommand(new RuokCommand());
+        registerCommand(new SetTraceMaskCommand());
+        registerCommand(new SrvrCommand());
+        registerCommand(new StatCommand());
+        registerCommand(new StatResetCommand());
+        registerCommand(new WatchCommand());
+        registerCommand(new WatchesByPathCommand());
+        registerCommand(new WatchSummaryCommand());
+    }
+
+    private Commands() {
+    }
 
     /**
      * Registers the given command. Registered commands can be run by passing
@@ -105,26 +121,6 @@ public class Commands {
      */
     public static Command getCommand(String cmdName) {
         return commands.get(cmdName);
-    }
-
-    static {
-        registerCommand(new CnxnStatResetCommand());
-        registerCommand(new ConfCommand());
-        registerCommand(new ConsCommand());
-        registerCommand(new DirsCommand());
-        registerCommand(new DumpCommand());
-        registerCommand(new EnvCommand());
-        registerCommand(new GetTraceMaskCommand());
-        registerCommand(new IsroCommand());
-        registerCommand(new MonitorCommand());
-        registerCommand(new RuokCommand());
-        registerCommand(new SetTraceMaskCommand());
-        registerCommand(new SrvrCommand());
-        registerCommand(new StatCommand());
-        registerCommand(new StatResetCommand());
-        registerCommand(new WatchCommand());
-        registerCommand(new WatchesByPathCommand());
-        registerCommand(new WatchSummaryCommand());
     }
 
     /**
@@ -339,7 +335,8 @@ public class Commands {
 
             return response;
 
-        }}
+        }
+    }
 
     /**
      * No-op command, check if the server is running
@@ -378,7 +375,7 @@ public class Commands {
                 traceMask = Long.parseLong(kwargs.get("traceMask"));
             } catch (NumberFormatException e) {
                 response.put("error", "setTraceMask requires long traceMask argument, got "
-                                      + kwargs.get("traceMask"));
+                        + kwargs.get("traceMask"));
                 return response;
             }
 
@@ -507,6 +504,4 @@ public class Commands {
             return response;
         }
     }
-
-    private Commands() {}
 }

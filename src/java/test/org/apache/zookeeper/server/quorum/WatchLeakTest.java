@@ -1,31 +1,41 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership. The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the
+ * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.quorum;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.junit.Assert.*;
+import org.apache.jute.InputArchive;
+import org.apache.jute.OutputArchive;
+import org.apache.zookeeper.MockPacket;
+import org.apache.zookeeper.ZKParameterized;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.proto.ConnectRequest;
+import org.apache.zookeeper.proto.ReplyHeader;
+import org.apache.zookeeper.proto.RequestHeader;
+import org.apache.zookeeper.proto.SetWatches;
+import org.apache.zookeeper.server.MockNIOServerCnxn;
+import org.apache.zookeeper.server.MockSelectorThread;
+import org.apache.zookeeper.server.NIOServerCnxn;
+import org.apache.zookeeper.server.NIOServerCnxnFactory;
+import org.apache.zookeeper.server.ZKDatabase;
+import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,35 +51,16 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-import org.apache.jute.InputArchive;
-import org.apache.jute.OutputArchive;
-import org.apache.zookeeper.MockPacket;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.proto.ConnectRequest;
-import org.apache.zookeeper.proto.ReplyHeader;
-import org.apache.zookeeper.proto.RequestHeader;
-import org.apache.zookeeper.proto.SetWatches;
-import org.apache.zookeeper.server.MockNIOServerCnxn;
-import org.apache.zookeeper.server.NIOServerCnxn;
-import org.apache.zookeeper.server.NIOServerCnxnFactory;
-import org.apache.zookeeper.server.MockSelectorThread;
-import org.apache.zookeeper.server.ZKDatabase;
-import org.apache.zookeeper.server.ZooTrace;
-import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
-import org.apache.zookeeper.ZKParameterized;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Demonstrate ZOOKEEPER-1382 : Watches leak on expired session
@@ -80,15 +71,13 @@ public class WatchLeakTest {
 
     protected static final Logger LOG = LoggerFactory
             .getLogger(WatchLeakTest.class);
-
+    /**
+     * This is the secret that we use to generate passwords, for the moment it
+     * is more of a sanity check.
+     */
+    static final private long superSecret = 0XB3415C00L;
     final long SESSION_ID = 0xBABEL;
-
     private final boolean sessionTimedout;
-
-    @Before
-    public void setUp() {
-        System.setProperty("zookeeper.admin.enableServer", "false");
-    }
 
     public WatchLeakTest(boolean sessionTimedout) {
         this.sessionTimedout = sessionTimedout;
@@ -96,9 +85,14 @@ public class WatchLeakTest {
 
     @Parameters
     public static Collection<Object[]> configs() {
-        return Arrays.asList(new Object[][] {
-            { false }, { true },
+        return Arrays.asList(new Object[][]{
+                {false}, {true},
         });
+    }
+
+    @Before
+    public void setUp() {
+        System.setProperty("zookeeper.admin.enableServer", "false");
     }
 
     /**
@@ -114,8 +108,8 @@ public class WatchLeakTest {
         when(selectorThread.addInterestOpsUpdateRequest(any(SelectionKey.class))).thenAnswer(new Answer<Boolean>() {
             @Override
             public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                SelectionKey sk = (SelectionKey)invocation.getArguments()[0];
-                NIOServerCnxn nioSrvCnx = (NIOServerCnxn)sk.attachment();
+                SelectionKey sk = (SelectionKey) invocation.getArguments()[0];
+                NIOServerCnxn nioSrvCnx = (NIOServerCnxn) sk.attachment();
                 sk.interestOps(nioSrvCnx.getInterestOps());
                 return true;
             }
@@ -175,77 +169,6 @@ public class WatchLeakTest {
     }
 
     /**
-     * A follower with no real leader connection
-     */
-    public static class MyFollower extends Follower {
-        /**
-         * Create a follower with a mocked leader connection
-         *
-         * @param self
-         * @param zk
-         */
-        MyFollower(QuorumPeer self, FollowerZooKeeperServer zk) {
-            super(self, zk);
-            leaderOs = mock(OutputArchive.class);
-            leaderIs = mock(InputArchive.class);
-            bufferedOutput = mock(BufferedOutputStream.class);
-        }
-    }
-
-    /**
-     * Simulate the behavior of a real selection key
-     */
-    private static class FakeSK extends SelectionKey {
-
-        @Override
-        public SelectableChannel channel() {
-            return null;
-        }
-
-        @Override
-        public Selector selector() {
-            return mock(Selector.class);
-        }
-
-        @Override
-        public boolean isValid() {
-            return true;
-        }
-
-        @Override
-        public void cancel() {
-        }
-
-        @Override
-        public int interestOps() {
-            return ops;
-        }
-
-        private int ops = OP_WRITE + OP_READ;
-
-        @Override
-        public SelectionKey interestOps(int ops) {
-            this.ops = ops;
-            return this;
-        }
-
-        @Override
-        public int readyOps() {
-            boolean reading = (ops & OP_READ) != 0;
-            boolean writing = (ops & OP_WRITE) != 0;
-            if (reading && writing) {
-                LOG.info("Channel is ready for reading and writing");
-            } else if (reading) {
-                LOG.info("Channel is ready for reading only");
-            } else if (writing) {
-                LOG.info("Channel is ready for writing only");
-            }
-            return ops;
-        }
-
-    }
-
-    /**
      * Create a watches message with a single watch on /
      *
      * @return a message that attempts to set 1 watch on /
@@ -263,12 +186,6 @@ public class WatchLeakTest {
         MockPacket p = new MockPacket(h, new ReplyHeader(), sw, null, null);
         return p.createAndReturnBB();
     }
-
-    /**
-     * This is the secret that we use to generate passwords, for the moment it
-     * is more of a sanity check.
-     */
-    static final private long superSecret = 0XB3415C00L;
 
     /**
      * Create a connection request
@@ -361,6 +278,77 @@ public class WatchLeakTest {
         QuorumPacket qp = new QuorumPacket(Leader.REVALIDATE, -1,
                 baos.toByteArray(), null);
         return qp;
+    }
+
+    /**
+     * A follower with no real leader connection
+     */
+    public static class MyFollower extends Follower {
+        /**
+         * Create a follower with a mocked leader connection
+         *
+         * @param self
+         * @param zk
+         */
+        MyFollower(QuorumPeer self, FollowerZooKeeperServer zk) {
+            super(self, zk);
+            leaderOs = mock(OutputArchive.class);
+            leaderIs = mock(InputArchive.class);
+            bufferedOutput = mock(BufferedOutputStream.class);
+        }
+    }
+
+    /**
+     * Simulate the behavior of a real selection key
+     */
+    private static class FakeSK extends SelectionKey {
+
+        private int ops = OP_WRITE + OP_READ;
+
+        @Override
+        public SelectableChannel channel() {
+            return null;
+        }
+
+        @Override
+        public Selector selector() {
+            return mock(Selector.class);
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
+
+        @Override
+        public void cancel() {
+        }
+
+        @Override
+        public int interestOps() {
+            return ops;
+        }
+
+        @Override
+        public SelectionKey interestOps(int ops) {
+            this.ops = ops;
+            return this;
+        }
+
+        @Override
+        public int readyOps() {
+            boolean reading = (ops & OP_READ) != 0;
+            boolean writing = (ops & OP_WRITE) != 0;
+            if (reading && writing) {
+                LOG.info("Channel is ready for reading and writing");
+            } else if (reading) {
+                LOG.info("Channel is ready for reading only");
+            } else if (writing) {
+                LOG.info("Channel is ready for writing only");
+            }
+            return ops;
+        }
+
     }
 
 }

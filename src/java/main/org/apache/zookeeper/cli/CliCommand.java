@@ -1,28 +1,22 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.cli;
+
+import org.apache.commons.cli.ParseException;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Map;
-import org.apache.commons.cli.ParseException;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 
 /**
  * base class for all CLI commands
@@ -50,7 +44,7 @@ abstract public class CliCommand {
 
     /**
      * Set out printStream (useable for testing)
-     * @param out 
+     * @param out
      */
     public void setOut(PrintStream out) {
         this.out = out;
@@ -58,7 +52,7 @@ abstract public class CliCommand {
 
     /**
      * Set err printStream (useable for testing)
-     * @param err 
+     * @param err
      */
     public void setErr(PrintStream err) {
         this.err = err;
@@ -74,7 +68,7 @@ abstract public class CliCommand {
 
     /**
      * get the string used to call this command
-     * @return 
+     * @return
      */
     public String getCmdStr() {
         return cmdStr;
@@ -82,7 +76,7 @@ abstract public class CliCommand {
 
     /**
      * get the option string
-     * @return 
+     * @return
      */
     public String getOptionStr() {
         return optionStr;
@@ -90,7 +84,7 @@ abstract public class CliCommand {
 
     /**
      * get a usage string, contains the command and the options
-     * @return 
+     * @return
      */
     public String getUsageStr() {
         return cmdStr + " " + optionStr;
@@ -98,26 +92,26 @@ abstract public class CliCommand {
 
     /**
      * add this command to a map. Use the command string as key.
-     * @param cmdMap 
+     * @param cmdMap
      */
     public void addToMap(Map<String, CliCommand> cmdMap) {
         cmdMap.put(cmdStr, this);
     }
-    
+
     /**
      * parse the command arguments
      * @param cmdArgs
      * @return this CliCommand
-     * @throws ParseException 
+     * @throws ParseException
      */
     abstract public CliCommand parse(String cmdArgs[]) throws ParseException;
-    
+
     /**
-     * 
+     *
      * @return
      * @throws KeeperException
      * @throws IOException
-     * @throws InterruptedException 
+     * @throws InterruptedException
      */
     abstract public boolean exec() throws KeeperException,
             IOException, InterruptedException;

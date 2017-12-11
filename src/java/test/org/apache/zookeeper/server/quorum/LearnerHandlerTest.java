@@ -1,35 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.quorum;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.net.Socket;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.server.TxnLogProposalIterator;
@@ -37,7 +17,6 @@ import org.apache.zookeeper.server.ZKDatabase;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.quorum.Leader.Proposal;
 import org.apache.zookeeper.server.util.ZxidUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
@@ -46,80 +25,27 @@ import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.Socket;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class LearnerHandlerTest extends ZKTestCase {
     protected static final Logger LOG = LoggerFactory
             .getLogger(LearnerHandlerTest.class);
-
-    class MockLearnerHandler extends LearnerHandler {
-        boolean threadStarted = false;
-
-        MockLearnerHandler(Socket sock, Leader leader) throws IOException {
-            super(sock, leader);
-        }
-
-        protected void startSendingPackets() {
-            threadStarted = true;
-        }
-    }
-
-    class MockZKDatabase extends ZKDatabase {
-        long lastProcessedZxid;
-        ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-        LinkedList<Proposal> committedLog = new LinkedList<Leader.Proposal>();
-        LinkedList<Proposal> txnLog = new LinkedList<Leader.Proposal>();
-
-        public MockZKDatabase(FileTxnSnapLog snapLog) {
-            super(snapLog);
-        }
-
-        public long getDataTreeLastProcessedZxid() {
-            return lastProcessedZxid;
-        }
-
-        public long getmaxCommittedLog() {
-            if (!committedLog.isEmpty()) {
-                return committedLog.getLast().packet.getZxid();
-            }
-            return 0;
-        }
-
-        public long getminCommittedLog() {
-            if (!committedLog.isEmpty()) {
-                return committedLog.getFirst().packet.getZxid();
-            }
-            return 0;
-        }
-
-        public LinkedList<Proposal> getCommittedLog() {
-            return committedLog;
-        }
-
-        public ReentrantReadWriteLock getLogLock() {
-            return lock;
-        }
-
-        public Iterator<Proposal> getProposalsFromTxnLog(long peerZxid,
-                long limit) {
-            if (peerZxid >= txnLog.peekFirst().packet.getZxid()) {
-                return txnLog.iterator();
-            } else {
-                return (new LinkedList<Proposal>()).iterator();
-            }
-
-        }
-
-        public long calculateTxnLogSizeLimit() {
-            return 1;
-        }
-    }
-
     private MockLearnerHandler learnerHandler;
     private Socket sock;
-
     // Member variables for mocking Leader
     private Leader leader;
     private long currentZxid;
-
     // Member variables for mocking ZkDatabase
     private MockZKDatabase db;
 
@@ -251,7 +177,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.TRUNC, 3, 5);
         // DIFF + 1 proposals + 1 commit
         assertEquals(3, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { 5 });
+        queuedPacketMatches(new long[]{5});
         reset();
 
         // Peer is within committedLog range
@@ -262,7 +188,7 @@ public class LearnerHandlerTest extends ZKTestCase {
                 db.getmaxCommittedLog());
         // DIFF + 2 proposals + 2 commit
         assertEquals(5, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { 3, 5 });
+        queuedPacketMatches(new long[]{3, 5});
         reset();
 
         // Peer miss the committedLog and txnlog is disabled
@@ -300,7 +226,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.TRUNC, 3, db.getmaxCommittedLog());
         // DIFF + 4 proposals + 4 commit
         assertEquals(9, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { 5, 6, 7, 8 });
+        queuedPacketMatches(new long[]{5, 6, 7, 8});
         reset();
 
         // Peer zxid is in txnlog range
@@ -311,7 +237,7 @@ public class LearnerHandlerTest extends ZKTestCase {
                 db.getmaxCommittedLog());
         // DIFF + 4 proposals + 4 commit
         assertEquals(9, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { 5, 6, 7, 8 });
+        queuedPacketMatches(new long[]{5, 6, 7, 8});
         reset();
 
     }
@@ -327,7 +253,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         db = new MockZKDatabase(null) {
             @Override
             public Iterator<Proposal> getProposalsFromTxnLog(long peerZxid,
-                    long limit) {
+                                                             long limit) {
                 return TxnLogProposalIterator.EMPTY_ITERATOR;
             }
         };
@@ -366,7 +292,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.TRUNC, 3, db.lastProcessedZxid);
         // DIFF + 3 proposals + 3 commit
         assertEquals(7, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { 5, 6, 7 });
+        queuedPacketMatches(new long[]{5, 6, 7});
         reset();
 
         // Peer has zxid in txnlog range
@@ -376,7 +302,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.DIFF, db.lastProcessedZxid, db.lastProcessedZxid);
         // DIFF + 4 proposals + 4 commit
         assertEquals(9, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { 3, 5, 6, 7 });
+        queuedPacketMatches(new long[]{3, 5, 6, 7});
         reset();
 
         // Peer miss the txnlog
@@ -387,7 +313,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         reset();
     }
 
-    long getZxid(long epoch, long counter){
+    long getZxid(long epoch, long counter) {
         return ZxidUtils.makeZxid(epoch, counter);
     }
 
@@ -417,8 +343,8 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.TRUNC, getZxid(0xf, 3), db.getmaxCommittedLog());
         // DIFF + 4 proposals + 4 commit
         assertEquals(9, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { getZxid(0xf, 5),
-                getZxid(0xf, 6), getZxid(0xf, 7), getZxid(0xf, 8) });
+        queuedPacketMatches(new long[]{getZxid(0xf, 5),
+                getZxid(0xf, 6), getZxid(0xf, 7), getZxid(0xf, 8)});
         reset();
 
         // Peer zxid is in txnlog range
@@ -429,8 +355,8 @@ public class LearnerHandlerTest extends ZKTestCase {
                 db.getmaxCommittedLog());
         // DIFF + 4 proposals + 4 commit
         assertEquals(9, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { getZxid(0xf, 5),
-                getZxid(0xf, 6), getZxid(0xf, 7), getZxid(0xf, 8) });
+        queuedPacketMatches(new long[]{getZxid(0xf, 5),
+                getZxid(0xf, 6), getZxid(0xf, 7), getZxid(0xf, 8)});
         reset();
     }
 
@@ -465,7 +391,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.DIFF, getZxid(1, 2), getZxid(1, 2));
         // DIFF + 2 proposals + 2 commit
         assertEquals(5, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { getZxid(1, 1), getZxid(1, 2)});
+        queuedPacketMatches(new long[]{getZxid(1, 1), getZxid(1, 2)});
         reset();
 
         // Peer has zxid of epoch 2, so it is already sync
@@ -501,7 +427,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.DIFF, getZxid(6, 0), getZxid(4, 1));
         // DIFF + 1 proposals + 1 commit
         assertEquals(3, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { getZxid(4, 1)});
+        queuedPacketMatches(new long[]{getZxid(4, 1)});
         reset();
 
         // Peer has zxid of epoch 4
@@ -511,7 +437,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.DIFF, getZxid(6, 0), getZxid(4, 1));
         // DIFF + 1 proposals + 1 commit
         assertEquals(3, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { getZxid(4, 1)});
+        queuedPacketMatches(new long[]{getZxid(4, 1)});
         reset();
 
         // Peer has zxid of epoch 5
@@ -561,7 +487,7 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertOpType(Leader.DIFF, getZxid(1, 2), getZxid(1, 2));
         // DIFF + 2 proposals + 2 commit
         assertEquals(5, learnerHandler.getQueuedPackets().size());
-        queuedPacketMatches(new long[] { getZxid(1, 1), getZxid(1, 2)});
+        queuedPacketMatches(new long[]{getZxid(1, 1), getZxid(1, 2)});
         reset();
 
     }
@@ -586,5 +512,68 @@ public class LearnerHandlerTest extends ZKTestCase {
         assertTrue(learnerHandler.syncFollower(peerZxid, db, leader));
         assertEquals(0, learnerHandler.getQueuedPackets().size());
         reset();
+    }
+
+    class MockLearnerHandler extends LearnerHandler {
+        boolean threadStarted = false;
+
+        MockLearnerHandler(Socket sock, Leader leader) throws IOException {
+            super(sock, leader);
+        }
+
+        protected void startSendingPackets() {
+            threadStarted = true;
+        }
+    }
+
+    class MockZKDatabase extends ZKDatabase {
+        long lastProcessedZxid;
+        ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+        LinkedList<Proposal> committedLog = new LinkedList<Leader.Proposal>();
+        LinkedList<Proposal> txnLog = new LinkedList<Leader.Proposal>();
+
+        public MockZKDatabase(FileTxnSnapLog snapLog) {
+            super(snapLog);
+        }
+
+        public long getDataTreeLastProcessedZxid() {
+            return lastProcessedZxid;
+        }
+
+        public long getmaxCommittedLog() {
+            if (!committedLog.isEmpty()) {
+                return committedLog.getLast().packet.getZxid();
+            }
+            return 0;
+        }
+
+        public long getminCommittedLog() {
+            if (!committedLog.isEmpty()) {
+                return committedLog.getFirst().packet.getZxid();
+            }
+            return 0;
+        }
+
+        public LinkedList<Proposal> getCommittedLog() {
+            return committedLog;
+        }
+
+        public ReentrantReadWriteLock getLogLock() {
+            return lock;
+        }
+
+        public Iterator<Proposal> getProposalsFromTxnLog(long peerZxid,
+                                                         long limit) {
+            if (peerZxid >= txnLog.peekFirst().packet.getZxid()) {
+                return txnLog.iterator();
+            } else {
+                return (new LinkedList<Proposal>()).iterator();
+            }
+
+        }
+
+        public long calculateTxnLogSizeLimit() {
+            return 1;
+        }
     }
 }

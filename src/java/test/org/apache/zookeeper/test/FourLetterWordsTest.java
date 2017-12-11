@@ -1,22 +1,26 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test;
+
+import org.apache.zookeeper.TestableZooKeeper;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.common.IOUtils;
+import org.apache.zookeeper.common.X509Exception.SSLContextException;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -25,23 +29,11 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.regex.Pattern;
 
-import org.apache.zookeeper.TestableZooKeeper;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.common.IOUtils;
-import org.apache.zookeeper.common.X509Exception.SSLContextException;
-
 import static org.apache.zookeeper.client.FourLetterWordMain.send4LetterWord;
-
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FourLetterWordsTest extends ClientBase {
     protected static final Logger LOG =
-        LoggerFactory.getLogger(FourLetterWordsTest.class);
+            LoggerFactory.getLogger(FourLetterWordsTest.class);
 
     @Rule
     public Timeout timeout = new Timeout(30000);
@@ -116,25 +108,26 @@ public class FourLetterWordsTest extends ClientBase {
     }
 
     private String sendRequest(String cmd) throws IOException, SSLContextException {
-      HostPort hpobj = ClientBase.parseHostPortList(hostPort).get(0);
-      return send4LetterWord(hpobj.host, hpobj.port, cmd);
+        HostPort hpobj = ClientBase.parseHostPortList(hostPort).get(0);
+        return send4LetterWord(hpobj.host, hpobj.port, cmd);
     }
+
     private String sendRequest(String cmd, int timeout) throws IOException, SSLContextException {
         HostPort hpobj = ClientBase.parseHostPortList(hostPort).get(0);
         return send4LetterWord(hpobj.host, hpobj.port, cmd, false, timeout);
-      }
+    }
 
     private void verify(String cmd, String expected) throws IOException, SSLContextException {
         String resp = sendRequest(cmd);
         LOG.info("cmd " + cmd + " expected " + expected + " got " + resp);
         Assert.assertTrue(resp.contains(expected));
     }
-    
+
     @Test
     public void testValidateStatOutput() throws Exception {
         ZooKeeper zk1 = createClient();
         ZooKeeper zk2 = createClient();
-        
+
         String resp = sendRequest("stat");
         BufferedReader in = new BufferedReader(new StringReader(resp));
 
@@ -177,7 +170,7 @@ public class FourLetterWordsTest extends ClientBase {
     public void testValidateConsOutput() throws Exception {
         ZooKeeper zk1 = createClient();
         ZooKeeper zk2 = createClient();
-        
+
         String resp = sendRequest("cons");
         BufferedReader in = new BufferedReader(new StringReader(resp));
 
@@ -194,7 +187,7 @@ public class FourLetterWordsTest extends ClientBase {
         zk2.close();
     }
 
-    @Test(timeout=60000)
+    @Test(timeout = 60000)
     public void testValidateSocketTimeout() throws Exception {
         /**
          * testing positive scenario that even with timeout parameter the

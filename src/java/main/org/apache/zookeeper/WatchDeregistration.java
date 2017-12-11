@@ -1,29 +1,22 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper;
 
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.WatcherType;
+import org.apache.zookeeper.ZooKeeper.ZKWatchManager;
+
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.zookeeper.Watcher.WatcherType;
-import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.ZooKeeper.ZKWatchManager;
 
 /**
  * Handles the special case of removing watches which has registered for a
@@ -38,7 +31,7 @@ public class WatchDeregistration {
     private final ZKWatchManager zkManager;
 
     public WatchDeregistration(String clientPath, Watcher watcher,
-            WatcherType watcherType, boolean local, ZKWatchManager zkManager) {
+                               WatcherType watcherType, boolean local, ZKWatchManager zkManager) {
         this.clientPath = clientPath;
         this.watcher = watcher;
         this.watcherType = watcherType;
@@ -48,7 +41,7 @@ public class WatchDeregistration {
 
     /**
      * Unregistering watcher that was added on path.
-     * 
+     *
      * @param rc
      *            the result code of the operation that attempted to remove
      *            watch on the path.
@@ -61,7 +54,7 @@ public class WatchDeregistration {
 
     /**
      * Returns client path which has specified for unregistering its watcher
-     * 
+     *
      * @return client path
      */
     public String getClientPath() {

@@ -33,8 +33,7 @@ public class ZooKeeperServerConf {
      */
     public static final String KEY_DATA_DIR = "data_dir";
     /**
-     * The key in the map returned by {@link #toMap()} for the data log
-     * directory.
+     * The key in the map returned by {@link #toMap()} for the data log directory.
      */
     public static final String KEY_DATA_LOG_DIR = "data_log_dir";
     /**
@@ -42,18 +41,15 @@ public class ZooKeeperServerConf {
      */
     public static final String KEY_TICK_TIME = "tick_time";
     /**
-     * The key in the map returned by {@link #toMap()} for the maximum
-     * client connections per host.
+     * The key in the map returned by {@link #toMap()} for the maximum client connections per host.
      */
     public static final String KEY_MAX_CLIENT_CNXNS = "max_client_cnxns";
     /**
-     * The key in the map returned by {@link #toMap()} for the minimum session
-     * timeout.
+     * The key in the map returned by {@link #toMap()} for the minimum session timeout.
      */
     public static final String KEY_MIN_SESSION_TIMEOUT = "min_session_timeout";
     /**
-     * The key in the map returned by {@link #toMap()} for the maximum session
-     * timeout.
+     * The key in the map returned by {@link #toMap()} for the maximum session timeout.
      */
     public static final String KEY_MAX_SESSION_TIMEOUT = "max_session_timeout";
     /**
@@ -73,14 +69,14 @@ public class ZooKeeperServerConf {
     /**
      * Creates a new configuration.
      *
-     * @param clientPort client port
-     * @param dataDir absolute path to data directory
-     * @param dataLogDir absolute path to data log directory
-     * @param tickTime tick time
+     * @param clientPort            client port
+     * @param dataDir               absolute path to data directory
+     * @param dataLogDir            absolute path to data log directory
+     * @param tickTime              tick time
      * @param maxClientCnxnsPerHost maximum number of client connections
-     * @param minSessionTimeout minimum session timeout
-     * @param maxSessionTimeout maximum session timeout
-     * @param serverId server ID
+     * @param minSessionTimeout     minimum session timeout
+     * @param maxSessionTimeout     maximum session timeout
+     * @param serverId              server ID
      */
     ZooKeeperServerConf(int clientPort, String dataDir, String dataLogDir,
                         int tickTime, int maxClientCnxnsPerHost,
@@ -169,8 +165,7 @@ public class ZooKeeperServerConf {
     }
 
     /**
-     * Converts this configuration to a map. The returned map is mutable, and
-     * changes to it do not reflect back into this configuration.
+     * Converts this configuration to a map. The returned map is mutable, and changes to it do not reflect back into this configuration.
      *
      * @return map representation of configuration
      */

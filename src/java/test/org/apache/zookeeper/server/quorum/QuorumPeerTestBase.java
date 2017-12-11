@@ -1,25 +1,28 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 /**
- * 
+ *
  */
 package org.apache.zookeeper.server.quorum;
+
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZKTestCase;
+import org.apache.zookeeper.common.PathUtils;
+import org.apache.zookeeper.server.admin.JettyAdminServer;
+import org.apache.zookeeper.test.ClientBase;
+import org.apache.zookeeper.test.QuorumBase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileReader;
@@ -28,25 +31,14 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZKTestCase;
-import org.apache.zookeeper.common.PathUtils;
-import org.apache.zookeeper.server.admin.JettyAdminServer;
-import org.apache.zookeeper.test.ClientBase;
-import org.apache.zookeeper.test.QuorumBase;
-
 /**
  * Has some common functionality for tests that work with QuorumPeers. Override
  * process(WatchedEvent) to implement the Watcher interface
  */
 public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
+    public static final int TIMEOUT = 3000;
     protected static final Logger LOG = LoggerFactory
             .getLogger(QuorumPeerTestBase.class);
-
-    public static final int TIMEOUT = 3000;
 
     public void process(WatchedEvent event) {
         // ignore for this test
@@ -60,23 +52,22 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
             }
         }
     }
-    
-    public static class MainThread implements Runnable {
-        final File confFile;
-        final File tmpDir;
 
+    public static class MainThread implements Runnable {
         public static final int UNSET_STATIC_CLIENTPORT = -1;
         // standalone mode doens't need myid
         public static final int UNSET_MYID = -1;
-
+        final File confFile;
+        final File tmpDir;
         volatile TestQPMain main;
+        Thread currentThread;
 
         public MainThread(int myid, String quorumCfgSection) throws IOException {
             this(myid, quorumCfgSection, true);
         }
 
         public MainThread(int myid, String quorumCfgSection, Integer secureClientPort, boolean writeDynamicConfigFile)
-                throws  IOException {
+                throws IOException {
             this(myid, UNSET_STATIC_CLIENTPORT, JettyAdminServer.DEFAULT_PORT, secureClientPort,
                     quorumCfgSection, null, writeDynamicConfigFile, null);
         }
@@ -108,12 +99,12 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
         }
 
         public MainThread(int myid, int clientPort, int adminServerPort, String quorumCfgSection,
-                String configs)  throws IOException {
+                          String configs) throws IOException {
             this(myid, clientPort, adminServerPort, quorumCfgSection, configs, true);
         }
 
         public MainThread(int myid, int clientPort, int adminServerPort, String quorumCfgSection,
-                String configs, boolean writeDynamicConfigFile)
+                          String configs, boolean writeDynamicConfigFile)
                 throws IOException {
             this(myid, clientPort, adminServerPort, quorumCfgSection, configs, writeDynamicConfigFile, null);
         }
@@ -141,7 +132,7 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
             fwriter.write("tickTime=4000\n");
             fwriter.write("initLimit=10\n");
             fwriter.write("syncLimit=5\n");
-            if(configs != null){
+            if (configs != null) {
                 fwriter.write(configs);
             }
 
@@ -181,7 +172,7 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
         private String createDynamicFile(String quorumCfgSection, String version)
                 throws IOException {
             String filename = "zoo.cfg.dynamic";
-            if( version != null ){
+            if (version != null) {
                 filename = filename + "." + version;
             }
 
@@ -201,11 +192,12 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
         }
 
         public File[] getFilesWithPrefix(final String prefix) {
-            return tmpDir.listFiles(new FilenameFilter() {      
+            return tmpDir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
                     return name.startsWith(prefix);
-                }});
+                }
+            });
         }
 
         public File getFileByName(String filename) {
@@ -224,8 +216,6 @@ public class QuorumPeerTestBase extends ZKTestCase implements Watcher {
             fwriter.flush();
             fwriter.close();
         }
-
-        Thread currentThread;
 
         synchronized public void start() {
             main = new TestQPMain();

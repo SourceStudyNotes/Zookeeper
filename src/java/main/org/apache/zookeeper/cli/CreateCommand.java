@@ -1,28 +1,27 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.cli;
 
-import java.util.List;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.Parser;
+import org.apache.commons.cli.PosixParser;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
+
+import java.util.List;
 
 /**
  * create command for cli
@@ -49,7 +48,7 @@ public class CreateCommand extends CliCommand {
         Parser parser = new PosixParser();
         cl = parser.parse(options, cmdArgs);
         args = cl.getArgs();
-        if(args.length < 2) {
+        if (args.length < 2) {
             throw new ParseException(getUsageStr());
         }
         return this;
@@ -67,7 +66,7 @@ public class CreateCommand extends CliCommand {
             return false;
         }
 
-        if(hasE && hasS) {
+        if (hasE && hasS) {
             flags = CreateMode.EPHEMERAL_SEQUENTIAL;
         } else if (hasE) {
             flags = CreateMode.EPHEMERAL;
@@ -88,7 +87,7 @@ public class CreateCommand extends CliCommand {
         try {
             String newPath = zk.create(path, data, acl, flags);
             err.println("Created " + newPath);
-        } catch(KeeperException.EphemeralOnLocalSessionException e) {
+        } catch (KeeperException.EphemeralOnLocalSessionException e) {
             err.println("Unable to create ephemeral node on a local session");
             return false;
         } catch (KeeperException.InvalidACLException ex) {

@@ -1,21 +1,24 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.server.persistence;
+
+import org.apache.jute.BinaryInputArchive;
+import org.apache.jute.BinaryOutputArchive;
+import org.apache.jute.InputArchive;
+import org.apache.jute.OutputArchive;
+import org.apache.jute.Record;
+import org.apache.zookeeper.server.util.SerializeUtils;
+import org.apache.zookeeper.txn.TxnHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -35,17 +38,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.Adler32;
 import java.util.zip.Checksum;
 
-import org.apache.jute.BinaryInputArchive;
-import org.apache.jute.BinaryOutputArchive;
-import org.apache.jute.InputArchive;
-import org.apache.jute.OutputArchive;
-import org.apache.jute.Record;
-import org.apache.zookeeper.server.persistence.TxnLog.TxnIterator;
-import org.apache.zookeeper.server.util.SerializeUtils;
-import org.apache.zookeeper.txn.TxnHeader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * This class implements the TxnLog interface. It provides api's
  * to access the txnlogs and add entries to it.
@@ -54,25 +46,25 @@ import org.slf4j.LoggerFactory;
  * <blockquote><pre>
  * LogFile:
  *     FileHeader TxnList ZeroPad
- * 
+ *
  * FileHeader: {
  *     magic 4bytes (ZKLG)
  *     version 4bytes
  *     dbid 8bytes
  *   }
- * 
+ *
  * TxnList:
  *     Txn || Txn TxnList
- *     
+ *
  * Txn:
  *     checksum Txnlen TxnHeader Record 0x42
- * 
+ *
  * checksum: 8bytes Adler32 is currently used
  *   calculated across payload -- Txnlen, TxnHeader, Record and 0x42
- * 
+ *
  * Txnlen:
  *     len 4bytes
- * 
+ *
  * TxnHeader: {
  *     sessionid 8bytes
  *     cxid 4bytes
@@ -80,26 +72,22 @@ import org.slf4j.LoggerFactory;
  *     time 8bytes
  *     type 4bytes
  *   }
- *     
+ *
  * Record:
  *     See Jute definition file for details on the various record types
- *      
+ *
  * ZeroPad:
  *     0 padded to EOF (filled during preallocation stage)
  * </pre></blockquote> 
  */
 public class FileTxnLog implements TxnLog {
-    private static final Logger LOG;
-
-    static long preAllocSize =  65536 * 1024;
-
     public final static int TXNLOG_MAGIC =
-        ByteBuffer.wrap("ZKLG".getBytes()).getInt();
-
+            ByteBuffer.wrap("ZKLG".getBytes()).getInt();
     public final static int VERSION = 2;
-
+    private static final Logger LOG;
     /** Maximum time we allow for elapsed fsync before WARNing */
     private final static long fsyncWarningThresholdMS;
+    static long preAllocSize = 65536 * 1024;
 
     static {
         LOG = LoggerFactory.getLogger(FileTxnLog.class);
@@ -115,18 +103,18 @@ public class FileTxnLog implements TxnLog {
         fsyncWarningThresholdMS = Long.getLong("fsync.warningthresholdms", 1000);
     }
 
+    private final boolean forceSync = !System.getProperty("zookeeper.forceSync", "yes").equals("no");
     long lastZxidSeen;
     volatile BufferedOutputStream logStream = null;
     volatile OutputArchive oa;
     volatile FileOutputStream fos = null;
-
     File logDir;
-    private final boolean forceSync = !System.getProperty("zookeeper.forceSync", "yes").equals("no");;
+    ;
     long dbId;
-    private LinkedList<FileOutputStream> streamsToFlush =
-        new LinkedList<FileOutputStream>();
     long currentSize;
     File logFileWrite = null;
+    private LinkedList<FileOutputStream> streamsToFlush =
+            new LinkedList<FileOutputStream>();
 
     /**
      * constructor for FileTxnLog. Take the directory
@@ -147,13 +135,71 @@ public class FileTxnLog implements TxnLog {
     }
 
     /**
+     * Find the log file that starts at, or just before, the snapshot. Return
+     * this and all subsequent logs. Results are ordered by zxid of file,
+     * ascending order.
+     * @param logDirList array of files
+     * @param snapshotZxid return files at, or before this zxid
+     * @return
+     */
+    public static File[] getLogFiles(File[] logDirList, long snapshotZxid) {
+        List<File> files = Util.sortDataDir(logDirList, "log", true);
+        long logZxid = 0;
+        // Find the log file that starts before or at the same time as the
+        // zxid of the snapshot
+        for (File f : files) {
+            long fzxid = Util.getZxidFromName(f.getName(), "log");
+            if (fzxid > snapshotZxid) {
+                continue;
+            }
+            // the files
+            // are sorted with zxid's
+            if (fzxid > logZxid) {
+                logZxid = fzxid;
+            }
+        }
+        List<File> v = new ArrayList<File>(5);
+        for (File f : files) {
+            long fzxid = Util.getZxidFromName(f.getName(), "log");
+            if (fzxid < logZxid) {
+                continue;
+            }
+            v.add(f);
+        }
+        return v.toArray(new File[0]);
+
+    }
+
+    /**
+     * read the header of the transaction file
+     * @param file the transaction file to read
+     * @return header that was read fomr the file
+     * @throws IOException
+     */
+    private static FileHeader readHeader(File file) throws IOException {
+        InputStream is = null;
+        try {
+            is = new BufferedInputStream(new FileInputStream(file));
+            InputArchive ia = BinaryInputArchive.getArchive(is);
+            FileHeader hdr = new FileHeader();
+            hdr.deserialize(ia, "fileheader");
+            return hdr;
+        } finally {
+            try {
+                if (is != null) is.close();
+            } catch (IOException e) {
+                LOG.warn("Ignoring exception during close", e);
+            }
+        }
+    }
+
+    /**
      * creates a checksum alogrithm to be used
      * @return the checksum used for this txnlog
      */
-    protected Checksum makeChecksumAlgorithm(){
+    protected Checksum makeChecksumAlgorithm() {
         return new Adler32();
     }
-
 
     /**
      * rollover the current log file to a new one.
@@ -179,39 +225,38 @@ public class FileTxnLog implements TxnLog {
             log.close();
         }
     }
-    
+
     /**
      * append an entry to the transaction log
      * @param hdr the header of the transaction
      * @param txn the transaction part of the entry
-     * returns true iff something appended, otw false 
+     * returns true iff something appended, otw false
      */
     public synchronized boolean append(TxnHeader hdr, Record txn)
-        throws IOException
-    {
+            throws IOException {
         if (hdr != null) {
             if (hdr.getZxid() <= lastZxidSeen) {
                 LOG.warn("Current zxid " + hdr.getZxid()
                         + " is <= " + lastZxidSeen + " for "
                         + hdr.getType());
             }
-            if (logStream==null) {
-               if(LOG.isInfoEnabled()){
-                    LOG.info("Creating new log file: log." +  
+            if (logStream == null) {
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("Creating new log file: log." +
                             Long.toHexString(hdr.getZxid()));
-               }
-               
-               logFileWrite = new File(logDir, ("log." + 
-                       Long.toHexString(hdr.getZxid())));
-               fos = new FileOutputStream(logFileWrite);
-               logStream=new BufferedOutputStream(fos);
-               oa = BinaryOutputArchive.getArchive(logStream);
-               FileHeader fhdr = new FileHeader(TXNLOG_MAGIC,VERSION, dbId);
-               fhdr.serialize(oa, "fileheader");
-               // Make sure that the magic number is written before padding.
-               logStream.flush();
-               currentSize = fos.getChannel().position();
-               streamsToFlush.add(fos);
+                }
+
+                logFileWrite = new File(logDir, ("log." +
+                        Long.toHexString(hdr.getZxid())));
+                fos = new FileOutputStream(logFileWrite);
+                logStream = new BufferedOutputStream(fos);
+                oa = BinaryOutputArchive.getArchive(logStream);
+                FileHeader fhdr = new FileHeader(TXNLOG_MAGIC, VERSION, dbId);
+                fhdr.serialize(oa, "fileheader");
+                // Make sure that the magic number is written before padding.
+                logStream.flush();
+                currentSize = fos.getChannel().position();
+                streamsToFlush.add(fos);
             }
             padFile(fos);
             byte[] buf = Util.marshallTxnEntry(hdr, txn);
@@ -223,7 +268,7 @@ public class FileTxnLog implements TxnLog {
             crc.update(buf, 0, buf.length);
             oa.writeLong(crc.getValue(), "txnEntryCRC");
             Util.writeTxnBytes(oa, buf);
-            
+
             return true;
         }
         return false;
@@ -239,49 +284,13 @@ public class FileTxnLog implements TxnLog {
     }
 
     /**
-     * Find the log file that starts at, or just before, the snapshot. Return
-     * this and all subsequent logs. Results are ordered by zxid of file,
-     * ascending order.
-     * @param logDirList array of files
-     * @param snapshotZxid return files at, or before this zxid
-     * @return
-     */
-    public static File[] getLogFiles(File[] logDirList,long snapshotZxid) {
-        List<File> files = Util.sortDataDir(logDirList, "log", true);
-        long logZxid = 0;
-        // Find the log file that starts before or at the same time as the
-        // zxid of the snapshot
-        for (File f : files) {
-            long fzxid = Util.getZxidFromName(f.getName(), "log");
-            if (fzxid > snapshotZxid) {
-                continue;
-            }
-            // the files
-            // are sorted with zxid's
-            if (fzxid > logZxid) {
-                logZxid = fzxid;
-            }
-        }
-        List<File> v=new ArrayList<File>(5);
-        for (File f : files) {
-            long fzxid = Util.getZxidFromName(f.getName(), "log");
-            if (fzxid < logZxid) {
-                continue;
-            }
-            v.add(f);
-        }
-        return v.toArray(new File[0]);
-
-    }
-
-    /**
      * get the last zxid that was logged in the transaction logs
      * @return the last zxid logged in the transaction logs
      */
     public long getLastLoggedZxid() {
         File[] files = getLogFiles(logDir.listFiles(), 0);
-        long maxLog=files.length>0?
-                Util.getZxidFromName(files[files.length-1].getName(),"log"):-1;
+        long maxLog = files.length > 0 ?
+                Util.getZxidFromName(files[files.length - 1].getName(), "log") : -1;
 
         // if a log file is more recent we must scan it to find
         // the highest zxid
@@ -291,7 +300,7 @@ public class FileTxnLog implements TxnLog {
             FileTxnLog txn = new FileTxnLog(logDir);
             itr = txn.read(maxLog);
             while (true) {
-                if(!itr.next())
+                if (!itr.next())
                     break;
                 TxnHeader hdr = itr.getHeader();
                 zxid = hdr.getZxid();
@@ -330,7 +339,7 @@ public class FileTxnLog implements TxnLog {
                 log.getChannel().force(false);
 
                 long syncElapsedMS =
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startSyncNS);
+                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startSyncNS);
                 if (syncElapsedMS > fsyncWarningThresholdMS) {
                     LOG.warn("fsync-ing the write ahead log in "
                             + Thread.currentThread().getName()
@@ -378,17 +387,17 @@ public class FileTxnLog implements TxnLog {
         try {
             itr = new FileTxnIterator(this.logDir, zxid);
             PositionInputStream input = itr.inputStream;
-            if(input == null) {
+            if (input == null) {
                 throw new IOException("No log files found to truncate! This could " +
                         "happen if you still have snapshots from an old setup or " +
                         "log files were deleted accidentally or dataLogDir was changed in zoo.cfg.");
             }
             long pos = input.getPosition();
             // now, truncate at the current position
-            RandomAccessFile raf=new RandomAccessFile(itr.logFile,"rw");
+            RandomAccessFile raf = new RandomAccessFile(itr.logFile, "rw");
             raf.setLength(pos);
             raf.close();
-            while(itr.goToNextLog()) {
+            while (itr.goToNextLog()) {
                 if (!itr.logFile.delete()) {
                     LOG.warn("Unable to truncate {}", itr.logFile);
                 }
@@ -400,37 +409,14 @@ public class FileTxnLog implements TxnLog {
     }
 
     /**
-     * read the header of the transaction file
-     * @param file the transaction file to read
-     * @return header that was read fomr the file
-     * @throws IOException
-     */
-    private static FileHeader readHeader(File file) throws IOException {
-        InputStream is =null;
-        try {
-            is = new BufferedInputStream(new FileInputStream(file));
-            InputArchive ia=BinaryInputArchive.getArchive(is);
-            FileHeader hdr = new FileHeader();
-            hdr.deserialize(ia, "fileheader");
-            return hdr;
-         } finally {
-             try {
-                 if (is != null) is.close();
-             } catch (IOException e) {
-                 LOG.warn("Ignoring exception during close", e);
-             }
-         }
-    }
-
-    /**
      * the dbid of this transaction database
      * @return the dbid of this database
      */
     public long getDbId() throws IOException {
         FileTxnIterator itr = new FileTxnIterator(logDir, 0);
-        FileHeader fh=readHeader(itr.logFile);
+        FileHeader fh = readHeader(itr.logFile);
         itr.close();
-        if(fh==null)
+        if (fh == null)
             throw new IOException("Unsupported Format.");
         return fh.getDbid();
     }
@@ -452,11 +438,12 @@ public class FileTxnLog implements TxnLog {
      */
     static class PositionInputStream extends FilterInputStream {
         long position;
+
         protected PositionInputStream(InputStream in) {
             super(in);
             position = 0;
         }
-        
+
         @Override
         public int read() throws IOException {
             int rc = super.read();
@@ -471,9 +458,9 @@ public class FileTxnLog implements TxnLog {
             if (rc > 0) {
                 position += rc;
             }
-            return rc;            
+            return rc;
         }
-        
+
         @Override
         public int read(byte[] b, int off, int len) throws IOException {
             int rc = super.read(b, off, len);
@@ -482,7 +469,7 @@ public class FileTxnLog implements TxnLog {
             }
             return rc;
         }
-        
+
         @Override
         public long skip(long n) throws IOException {
             long rc = super.skip(n);
@@ -491,6 +478,7 @@ public class FileTxnLog implements TxnLog {
             }
             return rc;
         }
+
         public long getPosition() {
             return position;
         }
@@ -510,21 +498,20 @@ public class FileTxnLog implements TxnLog {
             throw new UnsupportedOperationException("reset");
         }
     }
-    
+
     /**
      * this class implements the txnlog iterator interface
      * which is used for reading the transaction logs
      */
     public static class FileTxnIterator implements TxnLog.TxnIterator {
+        static final String CRC_ERROR = "CRC check failed";
         File logDir;
         long zxid;
         TxnHeader hdr;
         Record record;
         File logFile;
         InputArchive ia;
-        static final String CRC_ERROR="CRC check failed";
-       
-        PositionInputStream inputStream=null;
+        PositionInputStream inputStream = null;
         //stored files is the list of files greater than
         //the zxid we are looking for.
         private ArrayList<File> storedFiles;
@@ -552,7 +539,7 @@ public class FileTxnLog implements TxnLog {
                 }
             }
         }
-        
+
         /**
          * create an iterator over a transaction database directory
          * @param logDir the transaction database directory
@@ -571,7 +558,7 @@ public class FileTxnLog implements TxnLog {
         void init() throws IOException {
             storedFiles = new ArrayList<File>();
             List<File> files = Util.sortDataDir(FileTxnLog.getLogFiles(logDir.listFiles(), 0), "log", false);
-            for (File f: files) {
+            for (File f : files) {
                 if (Util.getZxidFromName(f.getName(), "log") >= zxid) {
                     storedFiles.add(f);
                 }
@@ -585,7 +572,7 @@ public class FileTxnLog implements TxnLog {
             if (!next())
                 return;
         }
-        
+
         /**
          * Return total storage size of txnlog that will return by this iterator.
          */
@@ -605,7 +592,7 @@ public class FileTxnLog implements TxnLog {
          */
         private boolean goToNextLog() throws IOException {
             if (storedFiles.size() > 0) {
-                this.logFile = storedFiles.remove(storedFiles.size()-1);
+                this.logFile = storedFiles.remove(storedFiles.size() - 1);
                 ia = createInputArchive(this.logFile);
                 return true;
             }
@@ -619,11 +606,11 @@ public class FileTxnLog implements TxnLog {
          * @throws IOException
          */
         protected void inStreamCreated(InputArchive ia, InputStream is)
-            throws IOException{
-            FileHeader header= new FileHeader();
+                throws IOException {
+            FileHeader header = new FileHeader();
             header.deserialize(ia, "fileheader");
             if (header.getMagic() != FileTxnLog.TXNLOG_MAGIC) {
-                throw new IOException("Transaction log: " + this.logFile + " has invalid magic number " 
+                throw new IOException("Transaction log: " + this.logFile + " has invalid magic number "
                         + header.getMagic()
                         + " != " + FileTxnLog.TXNLOG_MAGIC);
             }
@@ -636,11 +623,11 @@ public class FileTxnLog implements TxnLog {
          * @throws IOException
          **/
         protected InputArchive createInputArchive(File logFile) throws IOException {
-            if(inputStream==null){
-                inputStream= new PositionInputStream(new BufferedInputStream(new FileInputStream(logFile)));
+            if (inputStream == null) {
+                inputStream = new PositionInputStream(new BufferedInputStream(new FileInputStream(logFile)));
                 LOG.debug("Created new input stream " + logFile);
-                ia  = BinaryInputArchive.getArchive(inputStream);
-                inStreamCreated(ia,inputStream);
+                ia = BinaryInputArchive.getArchive(inputStream);
+                inStreamCreated(ia, inputStream);
                 LOG.debug("Created new input archive " + logFile);
             }
             return ia;
@@ -650,7 +637,7 @@ public class FileTxnLog implements TxnLog {
          * create a checksum algorithm
          * @return the checksum algorithm
          */
-        protected Checksum makeChecksumAlgorithm(){
+        protected Checksum makeChecksumAlgorithm() {
             return new Adler32();
         }
 
@@ -667,7 +654,7 @@ public class FileTxnLog implements TxnLog {
                 long crcValue = ia.readLong("crcvalue");
                 byte[] bytes = Util.readTxnBytes(ia);
                 // Since we preallocate, we define EOF to be an
-                if (bytes == null || bytes.length==0) {
+                if (bytes == null || bytes.length == 0) {
                     throw new EOFException("Failed to read " + logFile);
                 }
                 // EOF or corrupted record

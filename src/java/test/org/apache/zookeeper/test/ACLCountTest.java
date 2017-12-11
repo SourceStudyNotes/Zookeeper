@@ -1,41 +1,25 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test;
 
-import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZKTestCase;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.ServerCnxnFactory;
@@ -43,11 +27,20 @@ import org.apache.zookeeper.server.SyncRequestProcessor;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
+import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
 
 public class ACLCountTest extends ZKTestCase implements Watcher {
     private static final Logger LOG = LoggerFactory.getLogger(ACLTest.class);
     private static final String HOSTPORT =
-        "127.0.0.1:" + PortAssignment.unique();
+            "127.0.0.1:" + PortAssignment.unique();
     private volatile CountDownLatch startSignal;
 
     /**
@@ -75,12 +68,14 @@ public class ACLCountTest extends ZKTestCase implements Watcher {
         ZooKeeper zk;
 
         final ArrayList<ACL> CREATOR_ALL_AND_WORLD_READABLE =
-          new ArrayList<ACL>() { {
-            add(new ACL(ZooDefs.Perms.READ,ZooDefs.Ids.ANYONE_ID_UNSAFE));
-            add(new ACL(ZooDefs.Perms.ALL,ZooDefs.Ids.AUTH_IDS));
-            add(new ACL(ZooDefs.Perms.READ,ZooDefs.Ids.ANYONE_ID_UNSAFE));
-            add(new ACL(ZooDefs.Perms.ALL,ZooDefs.Ids.AUTH_IDS));
-        }};
+                new ArrayList<ACL>() {
+                    {
+                        add(new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+                        add(new ACL(ZooDefs.Perms.ALL, ZooDefs.Ids.AUTH_IDS));
+                        add(new ACL(ZooDefs.Perms.READ, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+                        add(new ACL(ZooDefs.Perms.ALL, ZooDefs.Ids.AUTH_IDS));
+                    }
+                };
 
         try {
             LOG.info("starting up the zookeeper server .. waiting");
@@ -94,20 +89,18 @@ public class ACLCountTest extends ZKTestCase implements Watcher {
             String path = "/path";
 
             try {
-              Assert.assertEquals(4,CREATOR_ALL_AND_WORLD_READABLE.size());
-            }
-            catch (Exception e) {
-              LOG.error("Something is fundamentally wrong with ArrayList's add() method. add()ing four times to an empty ArrayList should result in an ArrayList with 4 members.");
-              throw e;
+                Assert.assertEquals(4, CREATOR_ALL_AND_WORLD_READABLE.size());
+            } catch (Exception e) {
+                LOG.error("Something is fundamentally wrong with ArrayList's add() method. add()ing four times to an empty ArrayList should result in an ArrayList with 4 members.");
+                throw e;
             }
 
-            zk.create(path,path.getBytes(),CREATOR_ALL_AND_WORLD_READABLE,CreateMode.PERSISTENT);
+            zk.create(path, path.getBytes(), CREATOR_ALL_AND_WORLD_READABLE, CreateMode.PERSISTENT);
             List<ACL> acls = zk.getACL("/path", new Stat());
-            Assert.assertEquals(2,acls.size());
-        }
-        catch (Exception e) {
-          // test failed somehow.
-          Assert.assertTrue(false);
+            Assert.assertEquals(2, acls.size());
+        } catch (Exception e) {
+            // test failed somehow.
+            Assert.assertTrue(false);
         }
 
         f.shutdown();
@@ -122,7 +115,7 @@ public class ACLCountTest extends ZKTestCase implements Watcher {
      */
     public void process(WatchedEvent event) {
         LOG.info("Event:" + event.getState() + " " + event.getType() + " "
-                 + event.getPath());
+                + event.getPath());
         if (event.getState() == KeeperState.SyncConnected) {
             if (startSignal != null && startSignal.getCount() > 0) {
                 LOG.info("startsignal.countDown()");

@@ -1,29 +1,14 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper;
-
-import static org.junit.Assert.*;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.ZooDefs.Ids;
@@ -33,8 +18,16 @@ import org.apache.zookeeper.test.ClientBase;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.*;
+
 /**
- * 
+ *
  * Testing Zookeeper public methods
  *
  */
@@ -137,20 +130,20 @@ public class ZooKeeperTest extends ClientBase {
         }
         Assert.assertEquals(4, ((AtomicInteger) ctx).get());
     }
-    
+
     @Test
     public void testStatWhenPathDoesNotExist() throws IOException,
-    		InterruptedException {
-    	final ZooKeeper zk = createClient();
-    	ZooKeeperMain main = new ZooKeeperMain(zk);
-    	String cmdstring = "stat /invalidPath";
-    	main.cl.parseCommand(cmdstring);
-    	try {
-    		main.processZKCmd(main.cl);
-    		Assert.fail("As Node does not exist, command should fail by throwing No Node Exception.");
-    	} catch (KeeperException e) {
-    		Assert.assertEquals("KeeperErrorCode = NoNode for /invalidPath", e.getMessage());
-    	}
+            InterruptedException {
+        final ZooKeeper zk = createClient();
+        ZooKeeperMain main = new ZooKeeperMain(zk);
+        String cmdstring = "stat /invalidPath";
+        main.cl.parseCommand(cmdstring);
+        try {
+            main.processZKCmd(main.cl);
+            Assert.fail("As Node does not exist, command should fail by throwing No Node Exception.");
+        } catch (KeeperException e) {
+            Assert.assertEquals("KeeperErrorCode = NoNode for /invalidPath", e.getMessage());
+        }
     }
 
     @Test
@@ -168,7 +161,7 @@ public class ZooKeeperTest extends ClientBase {
     public void testParseWithQuotes() throws Exception {
         final ZooKeeper zk = createClient();
         ZooKeeperMain zkMain = new ZooKeeperMain(zk);
-        for (String quoteChar : new String[] {"'", "\""}) {
+        for (String quoteChar : new String[]{"'", "\""}) {
             String cmdstring = String.format("create /node %1$squoted data%1$s", quoteChar);
             zkMain.cl.parseCommand(cmdstring);
             Assert.assertEquals("quotes combine arguments", zkMain.cl.getNumArguments(), 3);
@@ -182,7 +175,7 @@ public class ZooKeeperTest extends ClientBase {
     public void testParseWithMixedQuotes() throws Exception {
         final ZooKeeper zk = createClient();
         ZooKeeperMain zkMain = new ZooKeeperMain(zk);
-        for (String[] quoteChars : new String[][] {{"'", "\""}, {"\"", "'"}}) {
+        for (String[] quoteChars : new String[][]{{"'", "\""}, {"\"", "'"}}) {
             String outerQuotes = quoteChars[0];
             String innerQuotes = quoteChars[1];
             String cmdstring = String.format("create /node %1$s%2$squoted data%2$s%1$s", outerQuotes, innerQuotes);
@@ -377,29 +370,29 @@ public class ZooKeeperTest extends ClientBase {
 
     @Test
     public void testCheckInvalidAcls() throws Exception {
-         final ZooKeeper zk = createClient();
-            ZooKeeperMain zkMain = new ZooKeeperMain(zk);
-            String cmdstring = "create -s -e /node data ip:scheme:gggsd"; //invalid acl's
-            try{
-                 zkMain.executeLine(cmdstring);
-            }catch(KeeperException.InvalidACLException e){
-                fail("For Invalid ACls should not throw exception");
-            }
+        final ZooKeeper zk = createClient();
+        ZooKeeperMain zkMain = new ZooKeeperMain(zk);
+        String cmdstring = "create -s -e /node data ip:scheme:gggsd"; //invalid acl's
+        try {
+            zkMain.executeLine(cmdstring);
+        } catch (KeeperException.InvalidACLException e) {
+            fail("For Invalid ACls should not throw exception");
+        }
     }
 
     @Test
     public void testDeleteWithInvalidVersionNo() throws Exception {
-         final ZooKeeper zk = createClient();
-            ZooKeeperMain zkMain = new ZooKeeperMain(zk);
-            String cmdstring = "create -s -e /node1 data "; 
-            String cmdstring1 = "delete /node1 2";//invalid dataversion no
-                 zkMain.executeLine(cmdstring);
-           try{
-               zkMain.executeLine(cmdstring1);
-                     
-            }catch(KeeperException.BadVersionException e){
-                fail("For Invalid dataversion number should not throw exception");
-            }
+        final ZooKeeper zk = createClient();
+        ZooKeeperMain zkMain = new ZooKeeperMain(zk);
+        String cmdstring = "create -s -e /node1 data ";
+        String cmdstring1 = "delete /node1 2";//invalid dataversion no
+        zkMain.executeLine(cmdstring);
+        try {
+            zkMain.executeLine(cmdstring1);
+
+        } catch (KeeperException.BadVersionException e) {
+            fail("For Invalid dataversion number should not throw exception");
+        }
     }
 
     @Test

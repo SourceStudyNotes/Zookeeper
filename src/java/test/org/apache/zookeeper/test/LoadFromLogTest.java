@@ -1,32 +1,16 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.zookeeper.common.Time;
 import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.BinaryOutputArchive;
 import org.apache.jute.Record;
@@ -39,6 +23,7 @@ import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.OpCode;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataNode;
 import org.apache.zookeeper.server.DataTree;
@@ -47,10 +32,10 @@ import org.apache.zookeeper.server.SyncRequestProcessor;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.apache.zookeeper.server.persistence.FileHeader;
 import org.apache.zookeeper.server.persistence.FileTxnLog;
-import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
-import org.apache.zookeeper.server.persistence.Util;
 import org.apache.zookeeper.server.persistence.FileTxnLog.FileTxnIterator;
+import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.persistence.TxnLog.TxnIterator;
+import org.apache.zookeeper.server.persistence.Util;
 import org.apache.zookeeper.txn.CreateTxn;
 import org.apache.zookeeper.txn.DeleteTxn;
 import org.apache.zookeeper.txn.MultiTxn;
@@ -61,15 +46,22 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoadFromLogTest extends ZKTestCase implements  Watcher {
-    private static String HOSTPORT = "127.0.0.1:" + PortAssignment.unique();
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+public class LoadFromLogTest extends ZKTestCase implements Watcher {
+    protected static final Logger LOG = LoggerFactory.getLogger(LoadFromLogTest.class);
     private static final int CONNECTION_TIMEOUT = 3000;
     private static final int NUM_MESSAGES = 300;
-    protected static final Logger LOG = LoggerFactory.getLogger(LoadFromLogTest.class);
-
     // setting up the quorum has a transaction overhead for creating and closing the session
     private static final int TRANSACTION_OVERHEAD = 2;
     private static final int TOTAL_TRANSACTIONS = NUM_MESSAGES + TRANSACTION_OVERHEAD;
+    private static String HOSTPORT = "127.0.0.1:" + PortAssignment.unique();
     private volatile boolean connected;
 
     /**
@@ -87,12 +79,12 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
         ServerCnxnFactory f = ServerCnxnFactory.createFactory(PORT, -1);
         f.startup(zks);
         Assert.assertTrue("waiting for server being up ",
-                ClientBase.waitForServerUp(HOSTPORT,CONNECTION_TIMEOUT));
+                ClientBase.waitForServerUp(HOSTPORT, CONNECTION_TIMEOUT));
         ZooKeeper zk = new ZooKeeper(HOSTPORT, CONNECTION_TIMEOUT, this);
 
         // generate some transactions that will get logged
         try {
-            for (int i = 0; i< NUM_MESSAGES; i++) {
+            for (int i = 0; i < NUM_MESSAGES; i++) {
                 zk.create("/invalidsnap-" + i, new byte[0], Ids.OPEN_ACL_UNSAFE,
                         CreateMode.PERSISTENT);
             }
@@ -108,14 +100,14 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
         FileTxnLog txnLog = new FileTxnLog(logDir);
 
         TxnIterator itr = txnLog.read(0);
-        
+
         // Check that storage space return some value
         FileTxnIterator fileItr = (FileTxnIterator) itr;
         long storageSize = fileItr.getStorageSize();
         LOG.info("Txnlog size: " + storageSize + " bytes");
         Assert.assertTrue("Storage size is greater than zero ",
                 (storageSize > 0));
-        
+
         long expectedZxid = 0;
         long lastZxid = 0;
         TxnHeader hdr;
@@ -125,7 +117,7 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
             Assert.assertTrue("not the same transaction. lastZxid=" + lastZxid + ", zxid=" + hdr.getZxid(), lastZxid != hdr.getZxid());
             Assert.assertTrue("excepting next transaction. expected=" + expectedZxid + ", retreived=" + hdr.getZxid(), (hdr.getZxid() == expectedZxid));
             lastZxid = hdr.getZxid();
-        }while(itr.next());
+        } while (itr.next());
 
         Assert.assertTrue("processed all transactions. " + expectedZxid + " == " + TOTAL_TRANSACTIONS, (expectedZxid == TOTAL_TRANSACTIONS));
         zks.shutdown();
@@ -148,12 +140,12 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
         ServerCnxnFactory f = ServerCnxnFactory.createFactory(PORT, -1);
         f.startup(zks);
         Assert.assertTrue("waiting for server being up ",
-                ClientBase.waitForServerUp(HOSTPORT,CONNECTION_TIMEOUT));
+                ClientBase.waitForServerUp(HOSTPORT, CONNECTION_TIMEOUT));
         ZooKeeper zk = new ZooKeeper(HOSTPORT, CONNECTION_TIMEOUT, this);
 
         // generate some transactions that will get logged
         try {
-            for (int i = 0; i< NUM_MESSAGES; i++) {
+            for (int i = 0; i < NUM_MESSAGES; i++) {
                 zk.create("/data-", new byte[0], Ids.OPEN_ACL_UNSAFE,
                         CreateMode.PERSISTENT_SEQUENTIAL);
             }
@@ -206,22 +198,22 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
     }
 
     public void process(WatchedEvent event) {
-    	switch (event.getType()) {
-    	case None:
-    		switch (event.getState()) {
-    		case SyncConnected:
-    			connected = true;
-    			break;
-    		case Disconnected:
-    			connected = false;
-    			break;
-    		default:
-    			break;
-    		}
-        	break;
-    	default:
-    		break;
-    	}
+        switch (event.getType()) {
+            case None:
+                switch (event.getState()) {
+                    case SyncConnected:
+                        connected = true;
+                        break;
+                    case Disconnected:
+                        connected = false;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     /**
@@ -262,12 +254,13 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
         // LOG.info("Attempting to delete " + "/test/" + (count + 1));
         // doOp(logFile, OpCode.delete, "/test/" + (count + 1), dt, zk);
     }
+
     /*
      * Does create/delete depending on the type and verifies
      * if cversion before the operation is 1 less than cversion afer.
      */
     private void doOp(FileTxnSnapLog logFile, int type, String path,
-            DataTree dt, DataNode parent, int cversion) throws Exception {
+                      DataTree dt, DataNode parent, int cversion) throws Exception {
         int lastSlash = path.lastIndexOf('/');
         String parentName = path.substring(0, lastSlash);
 
@@ -286,22 +279,21 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
         if (type == OpCode.delete) {
             txn = new DeleteTxn(path);
             txnHeader = new TxnHeader(0xabcd, 0x123, prevPzxid + 1,
-                Time.currentElapsedTime(), OpCode.delete);
+                    Time.currentElapsedTime(), OpCode.delete);
         } else if (type == OpCode.create) {
             txnHeader = new TxnHeader(0xabcd, 0x123, prevPzxid + 1,
                     Time.currentElapsedTime(), OpCode.create);
             txn = new CreateTxn(path, new byte[0], null, false, cversion);
-        }
-        else if (type == OpCode.multi) {
+        } else if (type == OpCode.multi) {
             txnHeader = new TxnHeader(0xabcd, 0x123, prevPzxid + 1,
                     Time.currentElapsedTime(), OpCode.create);
             txn = new CreateTxn(path, new byte[0], null, false, cversion);
             ArrayList txnList = new ArrayList();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             BinaryOutputArchive boa = BinaryOutputArchive.getArchive(baos);
-            txn.serialize(boa, "request") ;
+            txn.serialize(boa, "request");
             ByteBuffer bb = ByteBuffer.wrap(baos.toByteArray());
-            Txn txact = new Txn(OpCode.create,  bb.array());
+            Txn txact = new Txn(OpCode.create, bb.array());
             txnList.add(txact);
             txn = new MultiTxn(txnList);
             txnHeader = new TxnHeader(0xabcd, 0x123, prevPzxid + 1,
@@ -317,12 +309,13 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
             childStr.append(s).append(" ");
         }
         LOG.info("Children: " + childStr + " for " + parentName);
-        LOG.info("(cverions, pzxid): " +newCversion + ", " + newPzxid);
+        LOG.info("(cverions, pzxid): " + newCversion + ", " + newPzxid);
         Assert.assertTrue(type + " <cversion, pzxid> verification failed. Expected: <" +
-                (prevCversion + 1) + ", " + (prevPzxid + 1) + ">, found: <" +
-                newCversion + ", " + newPzxid + ">",
+                        (prevCversion + 1) + ", " + (prevPzxid + 1) + ">, found: <" +
+                        newCversion + ", " + newPzxid + ">",
                 (newCversion == prevCversion + 1 && newPzxid == prevPzxid + 1));
     }
+
     /**
      * Simulates ZOOKEEPER-1069 and verifies that flush() before padLogFile
      * fixes it.
@@ -332,18 +325,18 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
         File tmpDir = ClientBase.createTmpDir();
         FileTxnLog txnLog = new FileTxnLog(tmpDir);
         TxnHeader txnHeader = new TxnHeader(0xabcd, 0x123, 0x123,
-              Time.currentElapsedTime(), OpCode.create);
+                Time.currentElapsedTime(), OpCode.create);
         Record txn = new CreateTxn("/Test", new byte[0], null, false, 1);
         txnLog.append(txnHeader, txn);
         FileInputStream in = new FileInputStream(tmpDir.getPath() + "/log." +
-              Long.toHexString(txnHeader.getZxid()));
-        BinaryInputArchive ia  = BinaryInputArchive.getArchive(in);
+                Long.toHexString(txnHeader.getZxid()));
+        BinaryInputArchive ia = BinaryInputArchive.getArchive(in);
         FileHeader header = new FileHeader();
         header.deserialize(ia, "fileheader");
         LOG.info("Received magic : " + header.getMagic() +
-              " Expected : " + FileTxnLog.TXNLOG_MAGIC);
+                " Expected : " + FileTxnLog.TXNLOG_MAGIC);
         Assert.assertTrue("Missing magic number ",
-              header.getMagic() == FileTxnLog.TXNLOG_MAGIC);
+                header.getMagic() == FileTxnLog.TXNLOG_MAGIC);
     }
 
     /**
@@ -352,80 +345,80 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
      */
     @Test
     public void testRestore() throws Exception {
-		// setup a single server cluster
-		File tmpDir = ClientBase.createTmpDir();
-		ClientBase.setupTestEnv();
-		ZooKeeperServer zks = new ZooKeeperServer(tmpDir, tmpDir, 3000);
-		SyncRequestProcessor.setSnapCount(10000);
-		final int PORT = Integer.parseInt(HOSTPORT.split(":")[1]);
-		ServerCnxnFactory f = ServerCnxnFactory.createFactory(PORT, -1);
-		f.startup(zks);
-		Assert.assertTrue("waiting for server being up ", ClientBase
-				.waitForServerUp(HOSTPORT, CONNECTION_TIMEOUT));
+        // setup a single server cluster
+        File tmpDir = ClientBase.createTmpDir();
+        ClientBase.setupTestEnv();
+        ZooKeeperServer zks = new ZooKeeperServer(tmpDir, tmpDir, 3000);
+        SyncRequestProcessor.setSnapCount(10000);
+        final int PORT = Integer.parseInt(HOSTPORT.split(":")[1]);
+        ServerCnxnFactory f = ServerCnxnFactory.createFactory(PORT, -1);
+        f.startup(zks);
+        Assert.assertTrue("waiting for server being up ", ClientBase
+                .waitForServerUp(HOSTPORT, CONNECTION_TIMEOUT));
         ZooKeeper zk = getConnectedZkClient();
 
-		// generate some transactions
-		String lastPath = null;
-		try {
-			zk.create("/invalidsnap", new byte[0], Ids.OPEN_ACL_UNSAFE,
-					CreateMode.PERSISTENT);
-			for (int i = 0; i < NUM_MESSAGES; i++) {
-				lastPath = zk.create("/invalidsnap/test-", new byte[0],
-						Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-			}
-		} finally {
-			zk.close();
-		}
-		String[] tokens = lastPath.split("-");
-		String expectedPath = "/invalidsnap/test-"
-				+ String.format("%010d",
-						(new Integer(tokens[1])).intValue() + 1);
-		long eZxid = zks.getZKDatabase().getDataTreeLastProcessedZxid();
-		// force the zxid to be behind the content
-		zks.getZKDatabase().setlastProcessedZxid(
-				zks.getZKDatabase().getDataTreeLastProcessedZxid() - 10);
-		LOG.info("Set lastProcessedZxid to "
-				+ zks.getZKDatabase().getDataTreeLastProcessedZxid());
-		// Force snapshot and restore
-		zks.takeSnapshot();
-		zks.shutdown();
-		f.shutdown();
+        // generate some transactions
+        String lastPath = null;
+        try {
+            zk.create("/invalidsnap", new byte[0], Ids.OPEN_ACL_UNSAFE,
+                    CreateMode.PERSISTENT);
+            for (int i = 0; i < NUM_MESSAGES; i++) {
+                lastPath = zk.create("/invalidsnap/test-", new byte[0],
+                        Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+            }
+        } finally {
+            zk.close();
+        }
+        String[] tokens = lastPath.split("-");
+        String expectedPath = "/invalidsnap/test-"
+                + String.format("%010d",
+                (new Integer(tokens[1])).intValue() + 1);
+        long eZxid = zks.getZKDatabase().getDataTreeLastProcessedZxid();
+        // force the zxid to be behind the content
+        zks.getZKDatabase().setlastProcessedZxid(
+                zks.getZKDatabase().getDataTreeLastProcessedZxid() - 10);
+        LOG.info("Set lastProcessedZxid to "
+                + zks.getZKDatabase().getDataTreeLastProcessedZxid());
+        // Force snapshot and restore
+        zks.takeSnapshot();
+        zks.shutdown();
+        f.shutdown();
 
-		zks = new ZooKeeperServer(tmpDir, tmpDir, 3000);
-		SyncRequestProcessor.setSnapCount(10000);
-		f = ServerCnxnFactory.createFactory(PORT, -1);
-		f.startup(zks);
-		Assert.assertTrue("waiting for server being up ", ClientBase
-				.waitForServerUp(HOSTPORT, CONNECTION_TIMEOUT));
-		connected = false;
-		long fZxid = zks.getZKDatabase().getDataTreeLastProcessedZxid();
+        zks = new ZooKeeperServer(tmpDir, tmpDir, 3000);
+        SyncRequestProcessor.setSnapCount(10000);
+        f = ServerCnxnFactory.createFactory(PORT, -1);
+        f.startup(zks);
+        Assert.assertTrue("waiting for server being up ", ClientBase
+                .waitForServerUp(HOSTPORT, CONNECTION_TIMEOUT));
+        connected = false;
+        long fZxid = zks.getZKDatabase().getDataTreeLastProcessedZxid();
 
-		// Verify lastProcessedZxid is set correctly
-		Assert.assertTrue("Restore failed expected zxid=" + eZxid + " found="
-				+ fZxid, fZxid == eZxid);
+        // Verify lastProcessedZxid is set correctly
+        Assert.assertTrue("Restore failed expected zxid=" + eZxid + " found="
+                + fZxid, fZxid == eZxid);
         zk = getConnectedZkClient();
 
-		// Verify correctness of data and whether sequential znode creation
-		// proceeds correctly after this point
-		String[] children;
-		String path;
-		try {
-			children = zk.getChildren("/invalidsnap", false).toArray(
-					new String[0]);
-			path = zk.create("/invalidsnap/test-", new byte[0],
-					Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-		} finally {
-			zk.close();
-		}
-		LOG.info("Expected " + expectedPath + " found " + path);
-		Assert.assertTrue("Error in sequential znode creation expected "
-				+ expectedPath + " found " + path, path.equals(expectedPath));
-		Assert.assertTrue("Unexpected number of children " + children.length
-				+ " expected " + NUM_MESSAGES,
-				(children.length == NUM_MESSAGES));
-		f.shutdown();
-		zks.shutdown();
-	}
+        // Verify correctness of data and whether sequential znode creation
+        // proceeds correctly after this point
+        String[] children;
+        String path;
+        try {
+            children = zk.getChildren("/invalidsnap", false).toArray(
+                    new String[0]);
+            path = zk.create("/invalidsnap/test-", new byte[0],
+                    Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+        } finally {
+            zk.close();
+        }
+        LOG.info("Expected " + expectedPath + " found " + path);
+        Assert.assertTrue("Error in sequential znode creation expected "
+                + expectedPath + " found " + path, path.equals(expectedPath));
+        Assert.assertTrue("Unexpected number of children " + children.length
+                        + " expected " + NUM_MESSAGES,
+                (children.length == NUM_MESSAGES));
+        f.shutdown();
+        zks.shutdown();
+    }
 
     /**
      * Test we can restore a snapshot that has errors and data ahead of the zxid
@@ -451,7 +444,7 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
                 try {
                     zk.create("/invaliddir/test-", new byte[0],
                             Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-                } catch(NoNodeException e) {
+                } catch (NoNodeException e) {
                     //Expected
                 }
             }
@@ -517,7 +510,7 @@ public class LoadFromLogTest extends ZKTestCase implements  Watcher {
             LOG.info("Server failed to start - correct behavior " + e);
         } finally {
             System.setProperty(FileTxnSnapLog.ZOOKEEPER_DATADIR_AUTOCREATE,
-                FileTxnSnapLog.ZOOKEEPER_DATADIR_AUTOCREATE_DEFAULT);
+                    FileTxnSnapLog.ZOOKEEPER_DATADIR_AUTOCREATE_DEFAULT);
         }
     }
 

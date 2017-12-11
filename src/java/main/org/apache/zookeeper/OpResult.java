@@ -31,27 +31,24 @@ public abstract class OpResult {
     }
 
     /**
-     * Encodes the return type as from ZooDefs.OpCode.  Can be used
-     * to dispatch to the correct cast needed for getting the desired
-     * additional result data.
-     * @see ZooDefs.OpCode
+     * Encodes the return type as from ZooDefs.OpCode.  Can be used to dispatch to the correct cast needed for getting the desired additional result data.
+     *
      * @return an integer identifying what kind of operation this result came from.
+     * @see ZooDefs.OpCode
      */
     public int getType() {
         return type;
     }
 
     /**
-     * A result from a create operation.  This kind of result allows the
-     * path to be retrieved since the create might have been a sequential
-     * create.
+     * A result from a create operation.  This kind of result allows the path to be retrieved since the create might have been a sequential create.
      */
     public static class CreateResult extends OpResult {
         private String path;
         private Stat stat;
 
         public CreateResult(String path) {
-        	this(ZooDefs.OpCode.create, path, null);
+            this(ZooDefs.OpCode.create, path, null);
         }
 
         public CreateResult(String path, Stat stat) {
@@ -59,7 +56,7 @@ public abstract class OpResult {
         }
 
         private CreateResult(int opcode, String path, Stat stat) {
-        	super(opcode);
+            super(opcode);
             this.path = path;
             this.stat = stat;
         }
@@ -80,10 +77,10 @@ public abstract class OpResult {
             CreateResult other = (CreateResult) o;
 
             boolean statsAreEqual = (stat == null && other.stat == null ||
-                        						(stat != null && other.stat != null &&
-                        					   stat.getMzxid() == other.stat.getMzxid()));
+                    (stat != null && other.stat != null &&
+                            stat.getMzxid() == other.stat.getMzxid()));
             return getType() == other.getType() &&
-                   path.equals(other.getPath()) && statsAreEqual;
+                    path.equals(other.getPath()) && statsAreEqual;
         }
 
         @Override
@@ -117,8 +114,7 @@ public abstract class OpResult {
     }
 
     /**
-     * A result from a setData operation.  This kind of result provides access
-     * to the Stat structure from the update.
+     * A result from a setData operation.  This kind of result provides access to the Stat structure from the update.
      */
     public static class SetDataResult extends OpResult {
         private Stat stat;
@@ -171,10 +167,9 @@ public abstract class OpResult {
     }
 
     /**
-     * An error result from any kind of operation.  The point of error results
-     * is that they contain an error code which helps understand what happened.
-     * @see KeeperException.Code
+     * An error result from any kind of operation.  The point of error results is that they contain an error code which helps understand what happened.
      *
+     * @see KeeperException.Code
      */
     public static class ErrorResult extends OpResult {
         private int err;

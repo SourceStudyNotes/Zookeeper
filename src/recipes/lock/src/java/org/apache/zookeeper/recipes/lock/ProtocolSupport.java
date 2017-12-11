@@ -1,24 +1,15 @@
 /**
- *
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.recipes.lock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -26,6 +17,8 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.recipes.lock.ZooKeeperOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,7 +52,7 @@ class ProtocolSupport {
             doClose();
         }
     }
-    
+
     /**
      * return zookeeper client instance
      * @return zookeeper client instance
@@ -113,8 +106,8 @@ class ProtocolSupport {
      * @return object. it needs to be cast to the callee's expected 
      * return type.
      */
-    protected Object retryOperation(ZooKeeperOperation operation) 
-        throws KeeperException, InterruptedException {
+    protected Object retryOperation(ZooKeeperOperation operation)
+            throws KeeperException, InterruptedException {
         KeeperException exception = null;
         for (int i = 0; i < retryCount; i++) {
             try {
@@ -127,7 +120,7 @@ class ProtocolSupport {
                     exception = e;
                 }
                 LOG.debug("Attempt " + i + " failed with connection loss so " +
-                		"attempting to reconnect: " + e, e);
+                        "attempting to reconnect: " + e, e);
                 retryDelay(i);
             }
         }
@@ -150,7 +143,7 @@ class ProtocolSupport {
      * @param flags
      */
     protected void ensureExists(final String path, final byte[] data,
-            final List<ACL> acl, final CreateMode flags) {
+                                final List<ACL> acl, final CreateMode flags) {
         try {
             retryOperation(new ZooKeeperOperation() {
                 public boolean execute() throws KeeperException, InterruptedException {

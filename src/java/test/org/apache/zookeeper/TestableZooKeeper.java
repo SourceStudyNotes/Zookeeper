@@ -1,22 +1,19 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper;
+
+import org.apache.jute.Record;
+import org.apache.zookeeper.proto.ReplyHeader;
+import org.apache.zookeeper.proto.RequestHeader;
 
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -24,17 +21,13 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jute.Record;
-import org.apache.zookeeper.proto.ReplyHeader;
-import org.apache.zookeeper.proto.RequestHeader;
-
 public class TestableZooKeeper extends ZooKeeper {
 
     public TestableZooKeeper(String host, int sessionTimeout,
-            Watcher watcher) throws IOException {
+                             Watcher watcher) throws IOException {
         super(host, sessionTimeout, watcher);
     }
-    
+
     @Override
     public List<String> getChildWatches() {
         return super.getChildWatches();
@@ -57,7 +50,7 @@ public class TestableZooKeeper extends ZooKeeper {
      * later attempt to reconnect.
      */
     public void testableConnloss() throws IOException {
-        synchronized(cnxn) {
+        synchronized (cnxn) {
             cnxn.sendThread.testableCloseSocket();
         }
     }
@@ -72,7 +65,7 @@ public class TestableZooKeeper extends ZooKeeper {
         final CountDownLatch initiatedPause = new CountDownLatch(1);
         new Thread() {
             public void run() {
-                synchronized(cnxn) {
+                synchronized (cnxn) {
                     try {
                         try {
                             cnxn.sendThread.testableCloseSocket();
@@ -95,10 +88,9 @@ public class TestableZooKeeper extends ZooKeeper {
             return false;
         }
     }
-    
+
     public boolean testableWaitForShutdown(int wait)
-        throws InterruptedException
-    {
+            throws InterruptedException {
         return super.testableWaitForShutdown(wait);
     }
 
@@ -118,7 +110,7 @@ public class TestableZooKeeper extends ZooKeeper {
     }
 
     public ReplyHeader submitRequest(RequestHeader h, Record request,
-            Record response, WatchRegistration watchRegistration) throws InterruptedException {
+                                     Record response, WatchRegistration watchRegistration) throws InterruptedException {
         return cnxn.submitRequest(h, request, response, watchRegistration);
     }
 }

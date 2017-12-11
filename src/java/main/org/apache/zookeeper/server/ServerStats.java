@@ -1,23 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server;
-
 
 
 import org.apache.zookeeper.common.Time;
@@ -26,6 +18,7 @@ import org.apache.zookeeper.common.Time;
  * Basic Server Statistics
  */
 public class ServerStats {
+    private final Provider provider;
     private long packetsSent;
     private long packetsReceived;
     private long maxLatency;
@@ -33,21 +26,10 @@ public class ServerStats {
     private long totalLatency = 0;
     private long count = 0;
 
-    private final Provider provider;
-
-    public interface Provider {
-        public long getOutstandingRequests();
-        public long getLastProcessedZxid();
-        public String getState();
-        public int getNumAliveConnections();
-        public long getDataDirSize();
-        public long getLogDirSize();
-    }
-    
     public ServerStats(Provider provider) {
         this.provider = provider;
     }
-    
+
     // getters
     synchronized public long getMinLatency() {
         return minLatency == Long.MAX_VALUE ? 0 : minLatency;
@@ -67,8 +49,8 @@ public class ServerStats {
     public long getOutstandingRequests() {
         return provider.getOutstandingRequests();
     }
-    
-    public long getLastProcessedZxid(){
+
+    public long getLastProcessedZxid() {
         return provider.getLastProcessedZxid();
     }
 
@@ -79,7 +61,7 @@ public class ServerStats {
     public long getLogDirSize() {
         return provider.getLogDirSize();
     }
-    
+
     synchronized public long getPacketsReceived() {
         return packetsReceived;
     }
@@ -91,10 +73,10 @@ public class ServerStats {
     public String getServerState() {
         return provider.getState();
     }
-    
+
     /** The number of client connections alive to this server */
     public int getNumAliveClientConnections() {
-    	return provider.getNumAliveConnections();
+        return provider.getNumAliveConnections();
     }
 
     public boolean isProviderNull() {
@@ -102,7 +84,7 @@ public class ServerStats {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("Latency min/avg/max: " + getMinLatency() + "/"
                 + getAvgLatency() + "/" + getMaxLatency() + "\n");
@@ -112,11 +94,12 @@ public class ServerStats {
 
         if (provider != null) {
             sb.append("Outstanding: " + getOutstandingRequests() + "\n");
-            sb.append("Zxid: 0x"+ Long.toHexString(getLastProcessedZxid())+ "\n");
+            sb.append("Zxid: 0x" + Long.toHexString(getLastProcessedZxid()) + "\n");
         }
         sb.append("Mode: " + getServerState() + "\n");
         return sb.toString();
     }
+
     // mutators
     synchronized void updateLatency(long requestCreateTime) {
         long latency = Time.currentElapsedTime() - requestCreateTime;
@@ -129,28 +112,48 @@ public class ServerStats {
             maxLatency = latency;
         }
     }
-    synchronized public void resetLatency(){
+
+    synchronized public void resetLatency() {
         totalLatency = 0;
         count = 0;
         maxLatency = 0;
         minLatency = Long.MAX_VALUE;
     }
-    synchronized public void resetMaxLatency(){
+
+    synchronized public void resetMaxLatency() {
         maxLatency = getMinLatency();
     }
+
     synchronized public void incrementPacketsReceived() {
         packetsReceived++;
     }
+
     synchronized public void incrementPacketsSent() {
         packetsSent++;
     }
-    synchronized public void resetRequestCounters(){
+
+    synchronized public void resetRequestCounters() {
         packetsReceived = 0;
         packetsSent = 0;
     }
+
     synchronized public void reset() {
         resetLatency();
         resetRequestCounters();
+    }
+
+    public interface Provider {
+        public long getOutstandingRequests();
+
+        public long getLastProcessedZxid();
+
+        public String getState();
+
+        public int getNumAliveConnections();
+
+        public long getDataDirSize();
+
+        public long getLogDirSize();
     }
 
 }

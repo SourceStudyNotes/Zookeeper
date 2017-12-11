@@ -24,6 +24,7 @@ Raphael.fn.g.linechart = function (x, y, width, height, valuesx, valuesy, opts) 
         }
         return res;
     }
+
     opts = opts || {};
     if (!this.raphael.is(valuesx[0], "array")) {
         valuesx = [valuesx];
@@ -76,16 +77,16 @@ Raphael.fn.g.linechart = function (x, y, width, height, valuesx, valuesy, opts) 
         +ax[3] && axis.push(this.g.axis(x + gutter, y + height - gutter, height - 2 * gutter, miny, maxy, opts.axisystep || Math.floor((height - 2 * gutter) / 20), 1, opts.westlabels));
     }
     if (opts.northAxisLabel) {
-	this.g.text(x + gutter + width/2, gutter, opts.northAxisLabel);
+        this.g.text(x + gutter + width / 2, gutter, opts.northAxisLabel);
     }
     if (opts.southAxisLabel) {
-	this.g.text(x + gutter + width/2, y + height + 20, opts.southAxisLabel);
+        this.g.text(x + gutter + width / 2, y + height + 20, opts.southAxisLabel);
     }
     if (opts.westAxisLabel) {
-	this.g.text(gutter, y + gutter + height/2, opts.westAxisLabel).attr({rotation: -90});
+        this.g.text(gutter, y + gutter + height / 2, opts.westAxisLabel).attr({rotation: -90});
     }
     if (opts.eastAxisLabel) {
-	this.g.text(x + gutter + width + 20, y + gutter + height/2, opts.eastAxisLabel).attr({rotation: 90});
+        this.g.text(x + gutter + width + 20, y + gutter + height / 2, opts.eastAxisLabel).attr({rotation: 90});
     }
 
     var lines = this.set(),
@@ -94,12 +95,12 @@ Raphael.fn.g.linechart = function (x, y, width, height, valuesx, valuesy, opts) 
     for (var i = 0, ii = valuesy.length; i < ii; i++) {
         if (!opts.nostroke) {
             lines.push(line = this.path().attr({
-                stroke: colors[i],
-                "stroke-width": opts.width || 2,
-                "stroke-linejoin": "round",
-                "stroke-linecap": "round",
-                "stroke-dasharray": opts.dash || ""
-            }));
+                                                   stroke: colors[i],
+                                                   "stroke-width": opts.width || 2,
+                                                   "stroke-linejoin": "round",
+                                                   "stroke-linecap": "round",
+                                                   "stroke-dasharray": opts.dash || ""
+                                               }));
         }
         var sym = this.raphael.is(symbol, "array") ? symbol[i] : symbol,
             symset = this.set();
@@ -107,15 +108,17 @@ Raphael.fn.g.linechart = function (x, y, width, height, valuesx, valuesy, opts) 
         for (var j = 0, jj = valuesy[i].length; j < jj; j++) {
             var X = x + gutter + ((valuesx[i] || valuesx[0])[j] - minx) * kx;
             var Y = y + height - gutter - (valuesy[i][j] - miny) * ky;
-            (Raphael.is(sym, "array") ? sym[j] : sym) && symset.push(this.g[Raphael.fn.g.markers[this.raphael.is(sym, "array") ? sym[j] : sym]](X, Y, (opts.width || 2) * 3).attr({fill: colors[i], stroke: "none"}));
+            (Raphael.is(sym, "array") ? sym[j] : sym) && symset.push(
+                this.g[Raphael.fn.g.markers[this.raphael.is(sym, "array") ? sym[j] : sym]](X, Y, (opts.width || 2) * 3).attr({fill: colors[i], stroke: "none"}));
             path = path.concat([j ? "L" : "M", X, Y]);
         }
         symbols.push(symset);
         if (opts.shade) {
-            shades[i].attr({path: path.concat(["L", X, y + height - gutter, "L",  x + gutter + ((valuesx[i] || valuesx[0])[0] - minx) * kx, y + height - gutter, "z"]).join(",")});
+            shades[i].attr({path: path.concat(["L", X, y + height - gutter, "L", x + gutter + ((valuesx[i] || valuesx[0])[0] - minx) * kx, y + height - gutter, "z"]).join(",")});
         }
         !opts.nostroke && line.attr({path: path.join(",")});
     }
+
     function createColumns(f) {
         // unite Xs together
         var Xs = [];
@@ -156,6 +159,7 @@ Raphael.fn.g.linechart = function (x, y, width, height, valuesx, valuesy, opts) 
         }
         !f && (columns = cvrs);
     }
+
     function createDots(f) {
         var cvrs = f || that.set(),
             C;
@@ -178,6 +182,7 @@ Raphael.fn.g.linechart = function (x, y, width, height, valuesx, valuesy, opts) 
         }
         !f && (dots = cvrs);
     }
+
     chart.push(lines, shades, symbols, axis, columns, dots);
     chart.lines = lines;
     chart.shades = shades;
@@ -197,8 +202,10 @@ Raphael.fn.g.linechart = function (x, y, width, height, valuesx, valuesy, opts) 
         var hrefs = that.raphael.is(arguments[0], "array") ? arguments[0] : arguments;
         if (!(arguments.length - 1) && typeof cols == "object") {
             for (var x in cols) {
-                for (var i = 0, ii = columns.length; i < ii; i++) if (columns[i].axis == x) {
-                    columns[i].attr("href", cols[x]);
+                for (var i = 0, ii = columns.length; i < ii; i++) {
+                    if (columns[i].axis == x) {
+                        columns[i].attr("href", cols[x]);
+                    }
                 }
             }
         }

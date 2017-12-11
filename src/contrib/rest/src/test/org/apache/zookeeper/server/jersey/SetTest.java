@@ -1,30 +1,20 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.jersey;
 
-import java.util.Arrays;
-import java.util.Collection;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.WebResource.Builder;
 
-import javax.ws.rs.core.MediaType;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -36,10 +26,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.WebResource.Builder;
+import java.util.Arrays;
+import java.util.Collection;
+
+import javax.ws.rs.core.MediaType;
 
 
 /**
@@ -57,52 +50,45 @@ public class SetTest extends Base {
     private ZStat expectedStat;
     private byte[] data;
 
-    public static class MyWatcher implements Watcher {
-        public void process(WatchedEvent event) {
-            // FIXME ignore for now
-        }
-    }
-
-    @Parameters
-    public static Collection<Object[]> data() throws Exception {
-        String baseZnode = Base.createBaseZNode();
-
-        return Arrays.asList(new Object[][] {
-          {MediaType.APPLICATION_JSON, baseZnode + "/s-t1", "utf8",
-              ClientResponse.Status.OK,
-              new ZStat(baseZnode + "/s-t1", null, null), null },
-          {MediaType.APPLICATION_JSON, baseZnode + "/s-t2", "utf8",
-              ClientResponse.Status.OK,
-              new ZStat(baseZnode + "/s-t2", null, null), new byte[0] },
-          {MediaType.APPLICATION_JSON, baseZnode + "/s-t3", "utf8",
-              ClientResponse.Status.OK,
-              new ZStat(baseZnode + "/s-t3", null, null), "foobar".getBytes() },
-          {MediaType.APPLICATION_JSON, baseZnode + "/s-t4", "base64",
-              ClientResponse.Status.OK,
-              new ZStat(baseZnode + "/s-t4", null, null), null },
-          {MediaType.APPLICATION_JSON, baseZnode + "/s-t5", "base64",
-              ClientResponse.Status.OK,
-              new ZStat(baseZnode + "/s-t5", null, null), new byte[0] },
-          {MediaType.APPLICATION_JSON, baseZnode + "/s-t6", "base64",
-              ClientResponse.Status.OK,
-              new ZStat(baseZnode + "/s-t6", null, null),
-              "foobar".getBytes() },
-          {MediaType.APPLICATION_JSON, baseZnode + "/dkdkdkd", "utf8",
-              ClientResponse.Status.NOT_FOUND, null, null },
-          {MediaType.APPLICATION_JSON, baseZnode + "/dkdkdkd", "base64",
-              ClientResponse.Status.NOT_FOUND, null, null },
-          });
-    }
-
     public SetTest(String accept, String path, String encoding,
-            ClientResponse.Status status, ZStat expectedStat, byte[] data)
-    {
+                   ClientResponse.Status status, ZStat expectedStat, byte[] data) {
         this.accept = accept;
         this.path = path;
         this.encoding = encoding;
         this.expectedStatus = status;
         this.expectedStat = expectedStat;
         this.data = data;
+    }
+
+    @Parameters
+    public static Collection<Object[]> data() throws Exception {
+        String baseZnode = Base.createBaseZNode();
+
+        return Arrays.asList(new Object[][]{
+                {MediaType.APPLICATION_JSON, baseZnode + "/s-t1", "utf8",
+                        ClientResponse.Status.OK,
+                        new ZStat(baseZnode + "/s-t1", null, null), null},
+                {MediaType.APPLICATION_JSON, baseZnode + "/s-t2", "utf8",
+                        ClientResponse.Status.OK,
+                        new ZStat(baseZnode + "/s-t2", null, null), new byte[0]},
+                {MediaType.APPLICATION_JSON, baseZnode + "/s-t3", "utf8",
+                        ClientResponse.Status.OK,
+                        new ZStat(baseZnode + "/s-t3", null, null), "foobar".getBytes()},
+                {MediaType.APPLICATION_JSON, baseZnode + "/s-t4", "base64",
+                        ClientResponse.Status.OK,
+                        new ZStat(baseZnode + "/s-t4", null, null), null},
+                {MediaType.APPLICATION_JSON, baseZnode + "/s-t5", "base64",
+                        ClientResponse.Status.OK,
+                        new ZStat(baseZnode + "/s-t5", null, null), new byte[0]},
+                {MediaType.APPLICATION_JSON, baseZnode + "/s-t6", "base64",
+                        ClientResponse.Status.OK,
+                        new ZStat(baseZnode + "/s-t6", null, null),
+                        "foobar".getBytes()},
+                {MediaType.APPLICATION_JSON, baseZnode + "/dkdkdkd", "utf8",
+                        ClientResponse.Status.NOT_FOUND, null, null},
+                {MediaType.APPLICATION_JSON, baseZnode + "/dkdkdkd", "base64",
+                        ClientResponse.Status.NOT_FOUND, null, null},
+        });
     }
 
     @Test
@@ -118,7 +104,7 @@ public class SetTest extends Base {
         }
 
         Builder builder = wr.accept(accept)
-            .type(MediaType.APPLICATION_OCTET_STREAM);
+                .type(MediaType.APPLICATION_OCTET_STREAM);
 
         ClientResponse cr;
         if (data == null) {
@@ -149,6 +135,12 @@ public class SetTest extends Base {
         } else {
             Assert.assertTrue(new String(data) + " == " + new String(this.data),
                     Arrays.equals(data, this.data));
+        }
+    }
+
+    public static class MyWatcher implements Watcher {
+        public void process(WatchedEvent event) {
+            // FIXME ignore for now
         }
     }
 }

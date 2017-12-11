@@ -1,21 +1,30 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.inspector.manager;
+
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.ZooDefs.Perms;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
+import org.apache.zookeeper.inspector.encryption.BasicDataEncryptionManager;
+import org.apache.zookeeper.inspector.encryption.DataEncryptionManager;
+import org.apache.zookeeper.inspector.logger.LoggerFactory;
+import org.apache.zookeeper.retry.ZooKeeperRetry;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,43 +41,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooDefs.Ids;
-import org.apache.zookeeper.ZooDefs.Perms;
-import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.inspector.encryption.BasicDataEncryptionManager;
-import org.apache.zookeeper.inspector.encryption.DataEncryptionManager;
-import org.apache.zookeeper.inspector.logger.LoggerFactory;
-import org.apache.zookeeper.retry.ZooKeeperRetry;
-
 /**
  * A default implementation of {@link ZooInspectorManager} for connecting to
  * zookeeper instances
  */
 public class ZooInspectorManagerImpl implements ZooInspectorManager {
-    private static final String A_VERSION = "ACL Version";
-    private static final String C_TIME = "Creation Time";
-    private static final String C_VERSION = "Children Version";
-    private static final String CZXID = "Creation ID";
-    private static final String DATA_LENGTH = "Data Length";
-    private static final String EPHEMERAL_OWNER = "Ephemeral Owner";
-    private static final String M_TIME = "Last Modified Time";
-    private static final String MZXID = "Modified ID";
-    private static final String NUM_CHILDREN = "Number of Children";
-    private static final String PZXID = "Node ID";
-    private static final String VERSION = "Data Version";
-    private static final String ACL_PERMS = "Permissions";
-    private static final String ACL_SCHEME = "Scheme";
-    private static final String ACL_ID = "Id";
-    private static final String SESSION_STATE = "Session State";
-    private static final String SESSION_ID = "Session ID";
     /**
      * The key used for the connect string in the connection properties file
      */
@@ -90,19 +67,32 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
      * The key used for the authentication data in the connection properties file
      */
     public static final String AUTH_DATA_KEY = "authData";
-
-
+    private static final String A_VERSION = "ACL Version";
+    private static final String C_TIME = "Creation Time";
+    private static final String C_VERSION = "Children Version";
+    private static final String CZXID = "Creation ID";
+    private static final String DATA_LENGTH = "Data Length";
+    private static final String EPHEMERAL_OWNER = "Ephemeral Owner";
+    private static final String M_TIME = "Last Modified Time";
+    private static final String MZXID = "Modified ID";
+    private static final String NUM_CHILDREN = "Number of Children";
+    private static final String PZXID = "Node ID";
+    private static final String VERSION = "Data Version";
+    private static final String ACL_PERMS = "Permissions";
+    private static final String ACL_SCHEME = "Scheme";
+    private static final String ACL_ID = "Id";
+    private static final String SESSION_STATE = "Session State";
+    private static final String SESSION_ID = "Session ID";
     private static final File defaultNodeViewersFile = new File(
             "./config/defaultNodeViewers.cfg");
     private static final File defaultConnectionFile = new File(
             "./config/defaultConnectionSettings.cfg");
-
+    private final Map<String, NodeWatcher> watchers = new HashMap<String, NodeWatcher>();
+    protected boolean connected = true;
     private DataEncryptionManager encryptionManager;
     private String connectString;
     private int sessionTimeout;
     private ZooKeeper zooKeeper;
-    private final Map<String, NodeWatcher> watchers = new HashMap<String, NodeWatcher>();
-    protected boolean connected = true;
     private Properties lastConnectionProps;
     private String defaultEncryptionManager;
     private String defaultTimeout;
@@ -113,7 +103,7 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
     /**
      * @throws IOException
      *             - thrown if the default connection settings cannot be loaded
-     * 
+     *
      */
     public ZooInspectorManagerImpl() throws IOException {
         loadDefaultConnectionFile();
@@ -169,7 +159,7 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
                         }
                     }
                 });
-                if (authData != null && authData.length() > 0){
+                if (authData != null && authData.length() > 0) {
                     this.zooKeeper.addAuthInfo(authScheme, authData.getBytes());
                 }
                 ((ZooKeeperRetry) this.zooKeeper).setRetryLimit(10);
@@ -179,8 +169,8 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
             connected = false;
             e.printStackTrace();
         }
-        if (!connected){
-        	disconnect();
+        if (!connected) {
+            disconnect();
         }
         return connected;
     }
@@ -289,7 +279,7 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
             int index = nodePath.lastIndexOf("/");
             if (index == -1
                     || (!nodePath.equals("/") && nodePath.charAt(nodePath
-                            .length() - 1) == '/')) {
+                    .length() - 1) == '/')) {
                 throw new IllegalArgumentException("Invalid node path: "
                         + nodePath);
             }
@@ -513,7 +503,7 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
                     Stat s = zooKeeper.exists(node, false);
                     if (s == null) {
                         zooKeeper.create(node, this.encryptionManager
-                                .encryptData(null), Ids.OPEN_ACL_UNSAFE,
+                                        .encryptData(null), Ids.OPEN_ACL_UNSAFE,
                                 CreateMode.PERSISTENT);
                         parent = node;
                     }
@@ -587,15 +577,15 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
     public Pair<Map<String, List<String>>, Map<String, String>> getConnectionPropertiesTemplate() {
         Map<String, List<String>> template = new LinkedHashMap<String, List<String>>();
         template.put(CONNECT_STRING, Arrays
-                .asList(new String[] { defaultHosts }));
+                .asList(new String[]{defaultHosts}));
         template.put(SESSION_TIMEOUT, Arrays
-                .asList(new String[] { defaultTimeout }));
+                .asList(new String[]{defaultTimeout}));
         template.put(DATA_ENCRYPTION_MANAGER, Arrays
-                .asList(new String[] { defaultEncryptionManager }));
+                .asList(new String[]{defaultEncryptionManager}));
         template.put(AUTH_SCHEME_KEY, Arrays
-                .asList(new String[] { defaultAuthScheme }));
+                .asList(new String[]{defaultAuthScheme}));
         template.put(AUTH_DATA_KEY, Arrays
-                .asList(new String[] { defaultAuthValue }));
+                .asList(new String[]{defaultAuthValue}));
         Map<String, String> labels = new LinkedHashMap<String, String>();
         labels.put(CONNECT_STRING, "Connect String");
         labels.put(SESSION_TIMEOUT, "Session Timeout");
@@ -615,7 +605,7 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
      * org.apache.zookeeper.inspector.manager.NodeListener)
      */
     public void addWatchers(Collection<String> selectedNodes,
-            NodeListener nodeListener) {
+                            NodeListener nodeListener) {
         // add watcher for each node and add node to collection of
         // watched nodes
         if (connected) {
@@ -656,71 +646,9 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
         }
     }
 
-    /**
-     * A Watcher which will re-add itself every time an event is fired
-     * 
-     */
-    public class NodeWatcher implements Watcher {
-
-        private final String nodePath;
-        private final NodeListener nodeListener;
-        private final ZooKeeper zookeeper;
-        private boolean closed = false;
-
-        /**
-         * @param nodePath
-         *            - the path to the node to watch
-         * @param nodeListener
-         *            the {@link NodeListener} for this node
-         * @param zookeeper
-         *            - a {@link ZooKeeper} to use to access zookeeper
-         * @throws InterruptedException
-         * @throws KeeperException
-         */
-        public NodeWatcher(String nodePath, NodeListener nodeListener,
-                ZooKeeper zookeeper) throws KeeperException,
-                InterruptedException {
-            this.nodePath = nodePath;
-            this.nodeListener = nodeListener;
-            this.zookeeper = zookeeper;
-            Stat s = zooKeeper.exists(nodePath, this);
-            if (s != null) {
-                zookeeper.getChildren(nodePath, this);
-            }
-        }
-
-        public void process(WatchedEvent event) {
-            if (!closed) {
-                try {
-                    if (event.getType() != EventType.NodeDeleted) {
-
-                        Stat s = zooKeeper.exists(nodePath, this);
-                        if (s != null) {
-                            zookeeper.getChildren(nodePath, this);
-                        }
-                    }
-                } catch (Exception e) {
-                    LoggerFactory.getLogger().error(
-                            "Error occured re-adding node watcherfor node "
-                                    + nodePath, e);
-                }
-                nodeListener.processEvent(event.getPath(), event.getType()
-                        .name(), null);
-            }
-        }
-
-        /**
-		 * 
-		 */
-        public void stop() {
-            this.closed = true;
-        }
-
-    }
-
     /*
      * (non-Javadoc)
-     * 
+     *
      * @seeorg.apache.zookeeper.inspector.manager.ZooInspectorManager#
      * loadNodeViewersFile(java.io.File)
      */
@@ -780,7 +708,7 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @seeorg.apache.zookeeper.inspector.manager.ZooInspectorManager#
      * saveDefaultConnectionFile(java.util.Properties)
      */
@@ -810,12 +738,12 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @seeorg.apache.zookeeper.inspector.manager.ZooInspectorManager#
      * saveNodeViewersFile(java.io.File, java.util.List)
      */
     public void saveNodeViewersFile(File selectedFile,
-            List<String> nodeViewersClassNames) throws IOException {
+                                    List<String> nodeViewersClassNames) throws IOException {
         if (!selectedFile.exists()) {
             if (!selectedFile.createNewFile()) {
                 throw new IOException(
@@ -840,6 +768,10 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
         }
     }
 
+    public List<String> getDefaultNodeViewerConfiguration() throws IOException {
+        return loadNodeViewersFile(defaultNodeViewersFile);
+    }
+
     /*
      * (non-Javadoc)
      * 
@@ -859,13 +791,9 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
         saveNodeViewersFile(defaultNodeViewersFile, nodeViewersClassNames);
     }
 
-    public List<String> getDefaultNodeViewerConfiguration() throws IOException {
-        return loadNodeViewersFile(defaultNodeViewersFile);
-    }
-
     /*
      * (non-Javadoc)
-     * 
+     *
      * @seeorg.apache.zookeeper.inspector.manager.ZooInspectorManager#
      * getLastConnectionProps()
      */
@@ -875,11 +803,73 @@ public class ZooInspectorManagerImpl implements ZooInspectorManager {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @seeorg.apache.zookeeper.inspector.manager.ZooInspectorManager#
      * setLastConnectionProps(java.util.Properties)
      */
     public void setLastConnectionProps(Properties connectionProps) {
         this.lastConnectionProps = connectionProps;
+    }
+
+    /**
+     * A Watcher which will re-add itself every time an event is fired
+     *
+     */
+    public class NodeWatcher implements Watcher {
+
+        private final String nodePath;
+        private final NodeListener nodeListener;
+        private final ZooKeeper zookeeper;
+        private boolean closed = false;
+
+        /**
+         * @param nodePath
+         *            - the path to the node to watch
+         * @param nodeListener
+         *            the {@link NodeListener} for this node
+         * @param zookeeper
+         *            - a {@link ZooKeeper} to use to access zookeeper
+         * @throws InterruptedException
+         * @throws KeeperException
+         */
+        public NodeWatcher(String nodePath, NodeListener nodeListener,
+                           ZooKeeper zookeeper) throws KeeperException,
+                InterruptedException {
+            this.nodePath = nodePath;
+            this.nodeListener = nodeListener;
+            this.zookeeper = zookeeper;
+            Stat s = zooKeeper.exists(nodePath, this);
+            if (s != null) {
+                zookeeper.getChildren(nodePath, this);
+            }
+        }
+
+        public void process(WatchedEvent event) {
+            if (!closed) {
+                try {
+                    if (event.getType() != EventType.NodeDeleted) {
+
+                        Stat s = zooKeeper.exists(nodePath, this);
+                        if (s != null) {
+                            zookeeper.getChildren(nodePath, this);
+                        }
+                    }
+                } catch (Exception e) {
+                    LoggerFactory.getLogger().error(
+                            "Error occured re-adding node watcherfor node "
+                                    + nodePath, e);
+                }
+                nodeListener.processEvent(event.getPath(), event.getType()
+                        .name(), null);
+            }
+        }
+
+        /**
+         *
+         */
+        public void stop() {
+            this.closed = true;
+        }
+
     }
 }

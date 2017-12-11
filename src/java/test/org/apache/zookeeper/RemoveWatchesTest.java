@@ -1,34 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.zookeeper.KeeperException.Code;
@@ -46,6 +27,18 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 /**
  * Verifies removing watches using ZooKeeper client apis
  */
@@ -54,8 +47,18 @@ import org.slf4j.LoggerFactory;
 public class RemoveWatchesTest extends ClientBase {
     private static final Logger LOG = LoggerFactory
             .getLogger(RemoveWatchesTest.class);
+    private final boolean useAsync;
     private ZooKeeper zk1 = null;
     private ZooKeeper zk2 = null;
+
+    public RemoveWatchesTest(boolean useAsync) {
+        this.useAsync = useAsync;
+    }
+
+    @Parameters
+    public static Collection<Object[]> configs() {
+        return Arrays.asList(new Object[][]{{false}, {true},});
+    }
 
     @Override
     public void setUp() throws Exception {
@@ -73,23 +76,12 @@ public class RemoveWatchesTest extends ClientBase {
         super.tearDown();
     }
 
-    private final boolean useAsync;
-
-    public RemoveWatchesTest(boolean useAsync) {
-        this.useAsync = useAsync;
-    }
-
-    @Parameters
-    public static Collection<Object[]> configs() {
-        return Arrays.asList(new Object[][] { { false }, { true }, });
-    }
-
     private void removeWatches(ZooKeeper zk, String path, Watcher watcher,
-            WatcherType watcherType, boolean local, KeeperException.Code rc)
+                               WatcherType watcherType, boolean local, KeeperException.Code rc)
             throws InterruptedException, KeeperException {
         LOG.info(
                 "Sending removeWatches req using zk {} path: {} type: {} watcher: {} ",
-                new Object[] { zk, path, watcherType, watcher });
+                new Object[]{zk, path, watcherType, watcher});
         if (useAsync) {
             MyCallback c1 = new MyCallback(rc.intValue(), path);
             zk.removeWatches(path, watcher, watcherType, local, c1, null);
@@ -106,10 +98,10 @@ public class RemoveWatchesTest extends ClientBase {
     }
 
     private void removeAllWatches(ZooKeeper zk, String path,
-            WatcherType watcherType, boolean local, KeeperException.Code rc)
+                                  WatcherType watcherType, boolean local, KeeperException.Code rc)
             throws InterruptedException, KeeperException {
         LOG.info("Sending removeWatches req using zk {} path: {} type: {} ",
-                new Object[] { zk, path, watcherType });
+                new Object[]{zk, path, watcherType});
         if (useAsync) {
             MyCallback c1 = new MyCallback(rc.intValue(), path);
             zk.removeAllWatches(path, watcherType, local, c1, null);
@@ -133,13 +125,13 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         zk1.create("/node2", null, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         MyWatcher w1 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
         MyWatcher w2 = new MyWatcher("/node2", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node2", w2));
         removeWatches(zk2, "/node1", w1, WatcherType.Data, false, Code.OK);
@@ -174,13 +166,13 @@ public class RemoveWatchesTest extends ClientBase {
             InterruptedException, KeeperException {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
         MyWatcher w1 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
         MyWatcher w2 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
         removeWatches(zk2, "/node1", w2, WatcherType.Data, false, Code.OK);
@@ -212,12 +204,12 @@ public class RemoveWatchesTest extends ClientBase {
             InterruptedException, KeeperException {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 1);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w1);
         MyWatcher w2 = new MyWatcher("/node1", 1);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w2);
         removeWatches(zk2, "/node1", w2, WatcherType.Children, false, Code.OK);
         Assert.assertTrue("Didn't remove child watcher", w2.matches());
@@ -253,19 +245,19 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 2);
         MyWatcher w2 = new MyWatcher("/node1", 2);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w1);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w2);
         removeWatches(zk2, "/node1", w1, WatcherType.Any, false, Code.OK);
         removeWatches(zk2, "/node1", w2, WatcherType.Any, false, Code.OK);
@@ -285,19 +277,19 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 1);
         MyWatcher w2 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w1);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w2);
         removeWatches(zk2, "/node1", w1, WatcherType.Data, false, Code.OK);
         removeWatches(zk2, "/node1", w2, WatcherType.Data, false, Code.OK);
@@ -339,19 +331,19 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 1);
         MyWatcher w2 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w1);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w2);
         removeWatches(zk2, "/node1", w1, WatcherType.Children, false, Code.OK);
         removeWatches(zk2, "/node1", w2, WatcherType.Children, false, Code.OK);
@@ -391,18 +383,18 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 2);
         MyWatcher w2 = new MyWatcher("/node1", 2);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNull("Didn't set data watches", zk2.exists("/node2", w2));
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w1);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w2);
 
         // New Watcher which will be used for removal
@@ -448,17 +440,17 @@ public class RemoveWatchesTest extends ClientBase {
         MyWatcher w1 = new MyWatcher("/node1", 1);
         MyWatcher w2 = new MyWatcher("/node1", 2);
         // Add multiple data watches
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
         // Add child watch
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w2);
         removeWatches(zk2, "/node1", w1, WatcherType.Any, false, Code.OK);
         Assert.assertTrue("Didn't remove data watcher", w1.matches());
@@ -479,16 +471,16 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 2);
         MyWatcher w2 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
         // Add multiple child watches
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w2);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w1);
         removeWatches(zk2, "/node1", w2, WatcherType.Any, false, Code.OK);
         Assert.assertTrue("Didn't remove child watcher", w2.matches());
@@ -509,16 +501,16 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 2);
         MyWatcher w2 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
         // Add multiple child watches
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w1);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w2);
         stopServer();
         removeWatches(zk2, "/node1", w2, WatcherType.Any, true, Code.OK);
@@ -554,8 +546,8 @@ public class RemoveWatchesTest extends ClientBase {
             final String nodePath = path + i;
             w = new MyWatcher(nodePath, 1);
             wList.add(w);
-            LOG.info("Adding pre node watcher {} on path {}", new Object[] { w,
-                    nodePath });
+            LOG.info("Adding pre node watcher {} on path {}", new Object[]{w,
+                    nodePath});
             zk1.exists(nodePath, w);
         }
         Assert.assertEquals("Failed to add watchers!", count, zk1
@@ -592,8 +584,8 @@ public class RemoveWatchesTest extends ClientBase {
             String nodePath = path + i;
             w = new MyWatcher(path + i, 1);
             wList.add(w);
-            LOG.info("Adding child watcher {} on path {}", new Object[] { w,
-                    nodePath });
+            LOG.info("Adding child watcher {} on path {}", new Object[]{w,
+                    nodePath});
             zk1.getChildren(nodePath, w);
             nodePath += "/";
         }
@@ -627,8 +619,8 @@ public class RemoveWatchesTest extends ClientBase {
             wList.add(w);
             zk1.create(nodePath, null, Ids.OPEN_ACL_UNSAFE,
                     CreateMode.PERSISTENT);
-            LOG.info("Adding data watcher {} on path {}", new Object[] { w,
-                    nodePath });
+            LOG.info("Adding data watcher {} on path {}", new Object[]{w,
+                    nodePath});
             zk1.getData(nodePath, w, null);
             nodePath += "/";
         }
@@ -666,8 +658,8 @@ public class RemoveWatchesTest extends ClientBase {
             String nodePath = path + i;
             w = new MyWatcher(path + i, 2);
             wList.add(w);
-            LOG.info("Adding child watcher {} on path {}", new Object[] { w,
-                    nodePath });
+            LOG.info("Adding child watcher {} on path {}", new Object[]{w,
+                    nodePath});
             zk1.getChildren(nodePath, w);
             nodePath += "/";
         }
@@ -678,8 +670,8 @@ public class RemoveWatchesTest extends ClientBase {
         for (int i = 0; i < count; i++) {
             String nodePath = path + i;
             w = wList.get(i);
-            LOG.info("Adding data watcher {} on path {}", new Object[] { w,
-                    nodePath });
+            LOG.info("Adding data watcher {} on path {}", new Object[]{w,
+                    nodePath});
             zk1.getData(nodePath, w, null);
             nodePath += "/";
         }
@@ -720,16 +712,16 @@ public class RemoveWatchesTest extends ClientBase {
         zk1.create("/node1", null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         MyWatcher w1 = new MyWatcher("/node1", 2);
         MyWatcher w2 = new MyWatcher("/node1", 1);
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
         // Add multiple child watches
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         zk2.getChildren("/node1", w2);
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         zk2.getChildren("/node1", w1);
         removeWatches(zk2, "/node1", w1, WatcherType.Any, false, Code.OK);
         Assert.assertTrue("Didn't remove child watcher", w1.matches());
@@ -843,12 +835,12 @@ public class RemoveWatchesTest extends ClientBase {
             }
         };
         // Add multiple data watches
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
 
@@ -888,12 +880,12 @@ public class RemoveWatchesTest extends ClientBase {
             }
         };
         // Add multiple child watches
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertEquals("Didn't set child watches", 0,
                 zk2.getChildren("/node1", w1).size());
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertEquals("Didn't set child watches", 0,
                 zk2.getChildren("/node1", w2).size());
 
@@ -922,14 +914,14 @@ public class RemoveWatchesTest extends ClientBase {
             @Override
             public void process(WatchedEvent event) {
                 switch (event.getType()) {
-                case DataWatchRemoved:
-                    rmWatchCount.countDown();
-                    break;
-                case NodeDataChanged:
-                    dWatchCount.countDown();
-                    break;
-                default:
-                    break;
+                    case DataWatchRemoved:
+                        rmWatchCount.countDown();
+                        break;
+                    case NodeDataChanged:
+                        dWatchCount.countDown();
+                        break;
+                    default:
+                        break;
                 }
             }
         };
@@ -937,37 +929,37 @@ public class RemoveWatchesTest extends ClientBase {
             @Override
             public void process(WatchedEvent event) {
                 switch (event.getType()) {
-                case DataWatchRemoved:
-                    rmWatchCount.countDown();
-                    break;
-                case NodeDataChanged:
-                    dWatchCount.countDown();
-                    break;
-                default:
-                    break;
+                    case DataWatchRemoved:
+                        rmWatchCount.countDown();
+                        break;
+                    case NodeDataChanged:
+                        dWatchCount.countDown();
+                        break;
+                    default:
+                        break;
                 }
             }
         };
         // Add multiple data watches
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
 
         Assert.assertTrue("Server session is not a watcher",
                 isServerSessionWatcher(zk2.getSessionId(), "/node1",
-                WatcherType.Data));
+                        WatcherType.Data));
         removeAllWatches(zk2, "/node1", WatcherType.Data, false, Code.OK);
         Assert.assertTrue("Didn't remove data watcher",
                 rmWatchCount.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS));
 
         Assert.assertFalse("Server session is still a watcher after removal",
                 isServerSessionWatcher(zk2.getSessionId(), "/node1",
-                WatcherType.Data));
+                        WatcherType.Data));
     }
 
     /**
@@ -983,14 +975,14 @@ public class RemoveWatchesTest extends ClientBase {
             @Override
             public void process(WatchedEvent event) {
                 switch (event.getType()) {
-                case ChildWatchRemoved:
-                    rmWatchCount.countDown();
-                    break;
-                case NodeChildrenChanged:
-                    cWatchCount.countDown();
-                    break;
-                default:
-                    break;
+                    case ChildWatchRemoved:
+                        rmWatchCount.countDown();
+                        break;
+                    case NodeChildrenChanged:
+                        cWatchCount.countDown();
+                        break;
+                    default:
+                        break;
                 }
             }
         };
@@ -998,37 +990,37 @@ public class RemoveWatchesTest extends ClientBase {
             @Override
             public void process(WatchedEvent event) {
                 switch (event.getType()) {
-                case ChildWatchRemoved:
-                    rmWatchCount.countDown();
-                    break;
-                case NodeChildrenChanged:
-                    cWatchCount.countDown();
-                    break;
-                default:
-                    break;
+                    case ChildWatchRemoved:
+                        rmWatchCount.countDown();
+                        break;
+                    case NodeChildrenChanged:
+                        cWatchCount.countDown();
+                        break;
+                    default:
+                        break;
                 }
             }
         };
         // Add multiple child watches
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertEquals("Didn't set child watches", 0,
                 zk2.getChildren("/node1", w1).size());
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertEquals("Didn't set child watches", 0,
                 zk2.getChildren("/node1", w2).size());
 
         Assert.assertTrue("Server session is not a watcher",
                 isServerSessionWatcher(zk2.getSessionId(), "/node1",
-                WatcherType.Children));
+                        WatcherType.Children));
         removeAllWatches(zk2, "/node1", WatcherType.Children, false, Code.OK);
         Assert.assertTrue("Didn't remove child watcher",
                 rmWatchCount.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS));
 
         Assert.assertFalse("Server session is still a watcher after removal",
                 isServerSessionWatcher(zk2.getSessionId(), "/node1",
-                WatcherType.Children));
+                        WatcherType.Children));
     }
 
     /**
@@ -1044,16 +1036,16 @@ public class RemoveWatchesTest extends ClientBase {
             @Override
             public void process(WatchedEvent event) {
                 switch (event.getType()) {
-                case ChildWatchRemoved:
-                case DataWatchRemoved:
-                    rmWatchCount.countDown();
-                    break;
-                case NodeChildrenChanged:
-                case NodeDataChanged:
-                    watchCount.countDown();
-                    break;
-                default:
-                    break;
+                    case ChildWatchRemoved:
+                    case DataWatchRemoved:
+                        rmWatchCount.countDown();
+                        break;
+                    case NodeChildrenChanged:
+                    case NodeDataChanged:
+                        watchCount.countDown();
+                        break;
+                    default:
+                        break;
                 }
             }
         };
@@ -1061,79 +1053,82 @@ public class RemoveWatchesTest extends ClientBase {
             @Override
             public void process(WatchedEvent event) {
                 switch (event.getType()) {
-                case ChildWatchRemoved:
-                case DataWatchRemoved:
-                    rmWatchCount.countDown();
-                    break;
-                case NodeChildrenChanged:
-                case NodeDataChanged:
-                    watchCount.countDown();
-                    break;
-                default:
-                    break;
+                    case ChildWatchRemoved:
+                    case DataWatchRemoved:
+                        rmWatchCount.countDown();
+                        break;
+                    case NodeChildrenChanged:
+                    case NodeDataChanged:
+                        watchCount.countDown();
+                        break;
+                    default:
+                        break;
                 }
             }
         };
         // Add multiple child watches
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertEquals("Didn't set child watches", 0,
                 zk2.getChildren("/node1", w1).size());
-        LOG.info("Adding child watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding child watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertEquals("Didn't set child watches", 0,
                 zk2.getChildren("/node1", w2).size());
 
         // Add multiple data watches
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w1,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w1,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w1));
-        LOG.info("Adding data watcher {} on path {}", new Object[] { w2,
-                "/node1" });
+        LOG.info("Adding data watcher {} on path {}", new Object[]{w2,
+                "/node1"});
         Assert.assertNotNull("Didn't set data watches",
                 zk2.exists("/node1", w2));
 
         Assert.assertTrue("Server session is not a watcher",
                 isServerSessionWatcher(zk2.getSessionId(), "/node1",
-                WatcherType.Data));
+                        WatcherType.Data));
         removeAllWatches(zk2, "/node1", WatcherType.Any, false, Code.OK);
         Assert.assertTrue("Didn't remove data watcher",
                 rmWatchCount.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS));
         Assert.assertFalse("Server session is still a watcher after removal",
                 isServerSessionWatcher(zk2.getSessionId(), "/node1",
-                WatcherType.Data));
+                        WatcherType.Data));
         Assert.assertEquals("Received watch notification after removal!", 2,
                 watchCount.getCount());
+    }
+
+    /**
+     * Checks if a session is registered with the server as a watcher.
+     *
+     * @param long sessionId the session ID to check
+     * @param path the path to check for watchers
+     * @param type the type of watcher
+     * @return true if the client session is a watcher on path for the type
+     */
+    private boolean isServerSessionWatcher(long sessionId, String path,
+                                           WatcherType type) {
+        Set<ServerCnxn> cnxns = new HashSet<>();
+        CollectionUtils.addAll(cnxns, serverFactory.getConnections().iterator());
+        for (ServerCnxn cnxn : cnxns) {
+            if (cnxn.getSessionId() == sessionId) {
+                return getServer(serverFactory).getZKDatabase().getDataTree()
+                        .containsWatcher(path, type, cnxn);
+            }
+        }
+        return false;
     }
 
     /* a mocked ZK class that doesn't do client-side verification
      * before/after calling removeWatches */
     private class MyZooKeeper extends ZooKeeper {
-        class MyWatchManager extends ZKWatchManager {
-            public int lastrc;
-
-            /* Pretend that any watcher exists */
-            void containsWatcher(String path, Watcher watcher,
-                    WatcherType watcherType) throws NoWatcherException {
-            }
-
-            /* save the return error code by the server */
-            protected boolean removeWatches(
-                Map<String, Set<Watcher>> pathVsWatcher,
-                Watcher watcher, String path, boolean local, int rc,
-                Set<Watcher> removedWatchers) throws KeeperException {
-                lastrc = rc;
-                return false;
-            }
-        }
+        private MyWatchManager myWatchManager;
 
         public MyZooKeeper(String hp, int timeout, Watcher watcher)
                 throws IOException {
             super(hp, timeout, watcher, false);
         }
-
-        private MyWatchManager myWatchManager;
 
         protected ZKWatchManager defaultWatchManager() {
             myWatchManager = new MyWatchManager();
@@ -1143,6 +1138,24 @@ public class RemoveWatchesTest extends ClientBase {
         public int getRemoveWatchesRC() {
             return myWatchManager.lastrc;
         }
+
+        class MyWatchManager extends ZKWatchManager {
+            public int lastrc;
+
+            /* Pretend that any watcher exists */
+            void containsWatcher(String path, Watcher watcher,
+                                 WatcherType watcherType) throws NoWatcherException {
+            }
+
+            /* save the return error code by the server */
+            protected boolean removeWatches(
+                    Map<String, Set<Watcher>> pathVsWatcher,
+                    Watcher watcher, String path, boolean local, int rc,
+                    Set<Watcher> removedWatchers) throws KeeperException {
+                lastrc = rc;
+                return false;
+            }
+        }
     }
 
     private class MyWatcher implements Watcher {
@@ -1150,6 +1163,7 @@ public class RemoveWatchesTest extends ClientBase {
         private String eventPath;
         private CountDownLatch latch;
         private List<EventType> eventsAfterWatchRemoval = new ArrayList<EventType>();
+
         public MyWatcher(String path, int count) {
             this.path = path;
             latch = new CountDownLatch(count);
@@ -1157,7 +1171,7 @@ public class RemoveWatchesTest extends ClientBase {
 
         public void process(WatchedEvent event) {
             LOG.debug("Event path : {}, eventPath : {}"
-                    + new Object[] { path, event.getPath() });
+                    + new Object[]{path, event.getPath()});
             this.eventPath = event.getPath();
             // notifies watcher removal
             if (latch.getCount() == 0) {
@@ -1180,12 +1194,12 @@ public class RemoveWatchesTest extends ClientBase {
          * @throws InterruptedException if interrupted while waiting on latch
          */
         public boolean matches() throws InterruptedException {
-            if (!latch.await(CONNECTION_TIMEOUT/5, TimeUnit.MILLISECONDS)) {
+            if (!latch.await(CONNECTION_TIMEOUT / 5, TimeUnit.MILLISECONDS)) {
                 LOG.error("Failed waiting to remove the watches");
                 return false;
             }
-            LOG.debug("Client path : {} eventPath : {}", new Object[] { path,
-                    eventPath });
+            LOG.debug("Client path : {} eventPath : {}", new Object[]{path,
+                    eventPath});
             return path.equals(eventPath);
         }
 
@@ -1197,8 +1211,8 @@ public class RemoveWatchesTest extends ClientBase {
     private class MyCallback implements AsyncCallback.VoidCallback {
         private final String path;
         private final int rc;
-        private String eventPath;
         int eventRc;
+        private String eventPath;
         private CountDownLatch latch = new CountDownLatch(1);
 
         public MyCallback(int rc, String path) {
@@ -1223,31 +1237,10 @@ public class RemoveWatchesTest extends ClientBase {
          * @throws InterruptedException if interrupted while waiting on latch
          */
         public boolean matches() throws InterruptedException {
-            if (!latch.await(CONNECTION_TIMEOUT/5, TimeUnit.MILLISECONDS)) {
+            if (!latch.await(CONNECTION_TIMEOUT / 5, TimeUnit.MILLISECONDS)) {
                 return false;
             }
             return path.equals(eventPath) && rc == eventRc;
         }
-    }
-
-    /**
-     * Checks if a session is registered with the server as a watcher.
-     *
-     * @param long sessionId the session ID to check
-     * @param path the path to check for watchers
-     * @param type the type of watcher
-     * @return true if the client session is a watcher on path for the type
-     */
-    private boolean isServerSessionWatcher(long sessionId, String path,
-            WatcherType type) {
-        Set<ServerCnxn> cnxns = new HashSet<>();
-        CollectionUtils.addAll(cnxns, serverFactory.getConnections().iterator());
-        for (ServerCnxn cnxn : cnxns) {
-            if (cnxn.getSessionId() == sessionId) {
-                return getServer(serverFactory).getZKDatabase().getDataTree()
-                        .containsWatcher(path, type, cnxn);
-            }
-        }
-        return false;
     }
 }

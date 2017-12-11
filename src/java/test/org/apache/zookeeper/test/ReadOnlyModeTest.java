@@ -1,30 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.LineNumberReader;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Pattern;
-
 
 import org.apache.log4j.Layout;
 import org.apache.log4j.Level;
@@ -47,6 +32,13 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.LineNumberReader;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
 
 public class ReadOnlyModeTest extends ZKTestCase {
     private static int CONNECTION_TIMEOUT = QuorumBase.CONNECTION_TIMEOUT;
@@ -105,7 +97,7 @@ public class ReadOnlyModeTest extends ZKTestCase {
         Assert.assertNull("Should have created the znode:" + node2,
                 zk.exists(node2, false));
     }
-    
+
     /**
      * Basic test of read-only client functionality. Tries to read and write
      * during read-only mode, then regains a quorum and tries to write again.
@@ -178,11 +170,11 @@ public class ReadOnlyModeTest extends ZKTestCase {
             try {
                 zk.create("/test", "test".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
                         CreateMode.PERSISTENT);
-                success=true;
+                success = true;
                 break;
-            } catch(KeeperException.ConnectionLossException e) {
-                Thread.sleep(1000);               
-            }            
+            } catch (KeeperException.ConnectionLossException e) {
+                Thread.sleep(1000);
+            }
         }
         Assert.assertTrue("Did not succeed in connecting in 30s", success);
 
@@ -203,7 +195,7 @@ public class ReadOnlyModeTest extends ZKTestCase {
             Thread.sleep(200);
             // FIXME this was originally 5 seconds, but realistically, on random/slow/virt hosts, there is no way to guarantee this
             Assert.assertTrue("Can't connect to the server",
-                              Time.currentElapsedTime() - start < 30000);
+                    Time.currentElapsedTime() - start < 30000);
         }
 
         // At this point states list should contain, in the given order,

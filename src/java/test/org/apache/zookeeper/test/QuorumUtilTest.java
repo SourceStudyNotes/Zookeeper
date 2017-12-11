@@ -1,24 +1,14 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or morecontributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or morecontributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.test;
-
-import java.io.IOException;
-import java.util.Set;
 
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.jmx.MBeanRegistry;
@@ -28,6 +18,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Set;
 
 /**
  * This class is intented to ensure the correct functionality of
@@ -58,22 +51,22 @@ public class QuorumUtilTest extends ZKTestCase {
         int secondFollowerIndex = 0;
 
         switch (leaderIndex) {
-        case 1:
-            firstFollowerIndex = 2;
-            secondFollowerIndex = 3;
-            break;
-        case 2:
-            firstFollowerIndex = 1;
-            secondFollowerIndex = 3;
-            break;
-        case 3:
-            firstFollowerIndex = 1;
-            secondFollowerIndex = 2;
-            break;
+            case 1:
+                firstFollowerIndex = 2;
+                secondFollowerIndex = 3;
+                break;
+            case 2:
+                firstFollowerIndex = 1;
+                secondFollowerIndex = 3;
+                break;
+            case 3:
+                firstFollowerIndex = 1;
+                secondFollowerIndex = 2;
+                break;
 
-        default:
-            Assert.fail("Unexpected leaderIndex value: " + leaderIndex);
-            break;
+            default:
+                Assert.fail("Unexpected leaderIndex value: " + leaderIndex);
+                break;
         }
 
         LOG.info(">-->> Shuting down server [{}]", firstFollowerIndex);

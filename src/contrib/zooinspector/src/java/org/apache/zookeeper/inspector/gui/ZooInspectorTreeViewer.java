@@ -1,24 +1,21 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.inspector.gui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
+import com.nitido.utils.toaster.Toaster;
+
+import org.apache.zookeeper.inspector.manager.NodeListener;
+import org.apache.zookeeper.inspector.manager.ZooInspectorManager;
+
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -31,23 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.ImageIcon;
-import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JTree;
-import javax.swing.SwingWorker;
+import javax.swing.*;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
-
-import org.apache.zookeeper.inspector.manager.NodeListener;
-import org.apache.zookeeper.inspector.manager.ZooInspectorManager;
-
-import com.nitido.utils.toaster.Toaster;
 
 /**
  * A {@link JPanel} for showing the tree view of all the nodes in the zookeeper
@@ -77,7 +64,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
         this.toasterManager.setBorderColor(Color.BLACK);
         this.toasterManager.setMessageColor(Color.BLACK);
         this.toasterManager.setToasterColor(Color.WHITE);
-        toasterIcon = iconResource.get(IconResource.ICON_INFORMATION,"");
+        toasterIcon = iconResource.get(IconResource.ICON_INFORMATION, "");
         addNotify.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 List<String> selectedNodes = getSelectedNodes();
@@ -155,12 +142,60 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
         tree.setModel(new DefaultTreeModel(new DefaultMutableTreeNode()));
     }
 
+    /**
+     * @return {@link List} of the currently selected nodes
+     */
+    public List<String> getSelectedNodes() {
+        TreePath[] paths = tree.getSelectionPaths();
+        List<String> selectedNodes = new ArrayList<String>();
+        if (paths != null) {
+            for (TreePath path : paths) {
+                StringBuilder sb = new StringBuilder();
+                Object[] pathArray = path.getPath();
+                for (Object o : pathArray) {
+                    String nodeName = o.toString();
+                    if (nodeName.length() > 0) {
+                        sb.append("/");
+                        sb.append(o.toString());
+                    }
+                }
+                selectedNodes.add(sb.toString());
+            }
+        }
+        return selectedNodes;
+    }
+
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * org.apache.zookeeper.inspector.manager.NodeListener#processEvent(java
+     * .lang.String, java.lang.String, java.util.Map)
+     */
+    public void processEvent(String nodePath, String eventType,
+                             Map<String, String> eventInfo) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Node: ");
+        sb.append(nodePath);
+        sb.append("\nEvent: ");
+        sb.append(eventType);
+        if (eventInfo != null) {
+            for (Map.Entry<String, String> entry : eventInfo.entrySet()) {
+                sb.append("\n");
+                sb.append(entry.getKey());
+                sb.append(": ");
+                sb.append(entry.getValue());
+            }
+        }
+        this.toasterManager.showToaster(toasterIcon, sb.toString());
+    }
+
     private static class ZooInspectorTreeCellRenderer extends
             DefaultTreeCellRenderer {
         public ZooInspectorTreeCellRenderer(IconResource iconResource) {
-            setLeafIcon(iconResource.get(IconResource.ICON_TREE_LEAF,""));
-            setOpenIcon(iconResource.get(IconResource.ICON_TREE_OPEN,""));
-            setClosedIcon(iconResource.get(IconResource.ICON_TREE_CLOSE,""));
+            setLeafIcon(iconResource.get(IconResource.ICON_TREE_LEAF, ""));
+            setOpenIcon(iconResource.get(IconResource.ICON_TREE_OPEN, ""));
+            setClosedIcon(iconResource.get(IconResource.ICON_TREE_CLOSE, ""));
         }
     }
 
@@ -182,7 +217,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see javax.swing.tree.TreeNode#children()
          */
         public Enumeration<TreeNode> children() {
@@ -200,7 +235,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see javax.swing.tree.TreeNode#getAllowsChildren()
          */
         public boolean getAllowsChildren() {
@@ -209,7 +244,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see javax.swing.tree.TreeNode#getChildAt(int)
          */
         public TreeNode getChildAt(int childIndex) {
@@ -225,7 +260,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see javax.swing.tree.TreeNode#getChildCount()
          */
         public int getChildCount() {
@@ -234,7 +269,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see javax.swing.tree.TreeNode#getIndex(javax.swing.tree.TreeNode)
          */
         public int getIndex(TreeNode node) {
@@ -243,7 +278,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see javax.swing.tree.TreeNode#getParent()
          */
         public TreeNode getParent() {
@@ -252,7 +287,7 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see javax.swing.tree.TreeNode#isLeaf()
          */
         public boolean isLeaf() {
@@ -304,53 +339,5 @@ public class ZooInspectorTreeViewer extends JPanel implements NodeListener {
             return ZooInspectorTreeViewer.this;
         }
 
-    }
-
-    /**
-     * @return {@link List} of the currently selected nodes
-     */
-    public List<String> getSelectedNodes() {
-        TreePath[] paths = tree.getSelectionPaths();
-        List<String> selectedNodes = new ArrayList<String>();
-        if (paths != null) {
-            for (TreePath path : paths) {
-                StringBuilder sb = new StringBuilder();
-                Object[] pathArray = path.getPath();
-                for (Object o : pathArray) {
-                    String nodeName = o.toString();
-                    if (nodeName.length() > 0) {
-                        sb.append("/");
-                        sb.append(o.toString());
-                    }
-                }
-                selectedNodes.add(sb.toString());
-            }
-        }
-        return selectedNodes;
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * org.apache.zookeeper.inspector.manager.NodeListener#processEvent(java
-     * .lang.String, java.lang.String, java.util.Map)
-     */
-    public void processEvent(String nodePath, String eventType,
-            Map<String, String> eventInfo) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Node: ");
-        sb.append(nodePath);
-        sb.append("\nEvent: ");
-        sb.append(eventType);
-        if (eventInfo != null) {
-            for (Map.Entry<String, String> entry : eventInfo.entrySet()) {
-                sb.append("\n");
-                sb.append(entry.getKey());
-                sb.append(": ");
-                sb.append(entry.getValue());
-            }
-        }
-        this.toasterManager.showToaster(toasterIcon, sb.toString());
     }
 }

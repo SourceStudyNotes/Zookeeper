@@ -1,19 +1,12 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.jute;
@@ -29,22 +22,33 @@ import java.util.HashMap;
  *
  */
 public class RecordWriter {
-    
+
+    static private HashMap<String, Method> archiveFactory = constructFactory();
     private OutputArchive archive;
-    
+
+    /**
+     * Creates a new instance of RecordWriter
+     * @param out Output stream where the records will be serialized
+     * @param format Serialization format ("binary", "xml", or "csv")
+     */
+    public RecordWriter(OutputStream out, String format)
+            throws IOException {
+        archive = createArchive(out, format);
+    }
+
     static HashMap<String, Method> constructFactory() {
         HashMap<String, Method> factory = new HashMap<String, Method>();
 
         try {
             factory.put("binary",
                     BinaryOutputArchive.class.getDeclaredMethod(
-                        "getArchive", new Class[]{ OutputStream.class }));
+                            "getArchive", new Class[]{OutputStream.class}));
             factory.put("csv",
                     CsvOutputArchive.class.getDeclaredMethod(
-                        "getArchive", new Class[]{ OutputStream.class }));
+                            "getArchive", new Class[]{OutputStream.class}));
             factory.put("xml",
                     XmlOutputArchive.class.getDeclaredMethod(
-                        "getArchive", new Class[]{ OutputStream.class }));
+                            "getArchive", new Class[]{OutputStream.class}));
         } catch (SecurityException ex) {
             ex.printStackTrace();
         } catch (NoSuchMethodException ex) {
@@ -52,15 +56,13 @@ public class RecordWriter {
         }
         return factory;
     }
-    
-    static private HashMap<String, Method> archiveFactory = constructFactory();
-    
+
     static private OutputArchive createArchive(OutputStream out,
-            String format)
+                                               String format)
             throws IOException {
         Method factory = (Method) archiveFactory.get(format);
         if (factory != null) {
-            Object[] params = { out };
+            Object[] params = {out};
             try {
                 return (OutputArchive) factory.invoke(null, params);
             } catch (IllegalArgumentException ex) {
@@ -73,16 +75,7 @@ public class RecordWriter {
         }
         return null;
     }
-    /**
-     * Creates a new instance of RecordWriter
-     * @param out Output stream where the records will be serialized
-     * @param format Serialization format ("binary", "xml", or "csv")
-     */
-    public RecordWriter(OutputStream out, String format)
-    throws IOException {
-        archive = createArchive(out, format);
-    }
-    
+
     /**
      * Serialize a record
      * @param r record to be serialized

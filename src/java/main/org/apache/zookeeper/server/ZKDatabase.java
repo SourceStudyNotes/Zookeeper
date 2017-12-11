@@ -1,36 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 
 import org.apache.jute.BinaryOutputArchive;
 import org.apache.jute.InputArchive;
@@ -57,6 +36,20 @@ import org.apache.zookeeper.txn.TxnHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
+
 /**
  * This class maintains the in memory database of zookeeper
  * server states that includes the sessions, datatree and the
@@ -65,8 +58,13 @@ import org.slf4j.LoggerFactory;
  */
 public class ZKDatabase {
 
+    /**
+     * Default value is to use snapshot if txnlog size exceeds 1/3 the size of snapshot
+     */
+    public static final String SNAPSHOT_SIZE_FACTOR = "zookeeper.snapshotSizeFactor";
+    public static final int commitLogCount = 500;
     private static final Logger LOG = LoggerFactory.getLogger(ZKDatabase.class);
-
+    protected static int commitLogBuffer = 700;
     /**
      * make sure on a clear you take care of
      * all these members.
@@ -75,17 +73,9 @@ public class ZKDatabase {
     protected ConcurrentHashMap<Long, Integer> sessionsWithTimeouts;
     protected FileTxnSnapLog snapLog;
     protected long minCommittedLog, maxCommittedLog;
-    
-    /**
-     * Default value is to use snapshot if txnlog size exceeds 1/3 the size of snapshot
-     */
-    public static final String SNAPSHOT_SIZE_FACTOR = "zookeeper.snapshotSizeFactor";
-    private double snapshotSizeFactor = 0.33;
-    
-    public static final int commitLogCount = 500;
-    protected static int commitLogBuffer = 700;
     protected LinkedList<Proposal> committedLog = new LinkedList<Proposal>();
     protected ReentrantReadWriteLock logLock = new ReentrantReadWriteLock();
+    private double snapshotSizeFactor = 0.33;
     volatile private boolean initialized = false;
 
     /**
@@ -159,6 +149,7 @@ public class ZKDatabase {
     public long getminCommittedLog() {
         return minCommittedLog;
     }
+
     /**
      * Get the lock that controls the committedLog. If you want to get the pointer to the committedLog, you need
      * to use this lock to acquire a read lock before calling getCommittedLog()
@@ -172,7 +163,7 @@ public class ZKDatabase {
     public synchronized List<Proposal> getCommittedLog() {
         ReadLock rl = logLock.readLock();
         // only make a copy if this thread isn't already holding a lock
-        if(logLock.getReadHoldCount() <=0) {
+        if (logLock.getReadHoldCount() <= 0) {
             try {
                 rl.lock();
                 return new LinkedList<Proposal>(this.committedLog);
@@ -215,14 +206,14 @@ public class ZKDatabase {
      * @throws IOException
      */
     public long loadDataBase() throws IOException {
-        PlayBackListener listener=new PlayBackListener(){
-            public void onTxnLoaded(TxnHeader hdr,Record txn){
-                Request r = new Request(0, hdr.getCxid(),hdr.getType(), hdr, txn, hdr.getZxid());
+        PlayBackListener listener = new PlayBackListener() {
+            public void onTxnLoaded(TxnHeader hdr, Record txn) {
+                Request r = new Request(0, hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
                 addCommittedProposal(r);
             }
         };
 
-        long zxid = snapLog.restore(dataTree,sessionsWithTimeouts,listener);
+        long zxid = snapLog.restore(dataTree, sessionsWithTimeouts, listener);
         initialized = true;
         return zxid;
     }
@@ -268,9 +259,17 @@ public class ZKDatabase {
             wl.unlock();
         }
     }
-    
+
     public double getSnapshotSizeFactor() {
         return snapshotSizeFactor;
+    }
+
+    /**
+     * Use for unit testing, so we can turn this feature on/off
+     * @param snapshotSizeFactor Set to minus value to turn this off.
+     */
+    public void setSnapshotSizeFactor(double snapshotSizeFactor) {
+        this.snapshotSizeFactor = snapshotSizeFactor;
     }
 
     public long calculateTxnLogSizeLimit() {
@@ -335,7 +334,7 @@ public class ZKDatabase {
         }
         return new TxnLogProposalIterator(itr);
     }
-    
+
     /**
      * remove a cnxn from the datatree
      * @param cnxn the cnxn to remove from the datatree
@@ -418,7 +417,7 @@ public class ZKDatabase {
      * @return the datanode for getting the path
      */
     public DataNode getNode(String path) {
-      return dataTree.getNode(path);
+        return dataTree.getNode(path);
     }
 
     /**
@@ -439,7 +438,7 @@ public class ZKDatabase {
      * @throws KeeperException.NoNodeException
      */
     public byte[] getData(String path, Stat stat, Watcher watcher)
-    throws KeeperException.NoNodeException {
+            throws KeeperException.NoNodeException {
         return dataTree.getData(path, stat, watcher);
     }
 
@@ -452,7 +451,7 @@ public class ZKDatabase {
      * @param watcher the watcher function
      */
     public void setWatches(long relativeZxid, List<String> dataWatches,
-            List<String> existWatches, List<String> childWatches, Watcher watcher) {
+                           List<String> existWatches, List<String> childWatches, Watcher watcher) {
         dataTree.setWatches(relativeZxid, dataWatches, existWatches, childWatches, watcher);
     }
 
@@ -476,7 +475,7 @@ public class ZKDatabase {
      * @throws KeeperException.NoNodeException
      */
     public List<String> getChildren(String path, Stat stat, Watcher watcher)
-    throws KeeperException.NoNodeException {
+            throws KeeperException.NoNodeException {
         return dataTree.getChildren(path, stat, watcher);
     }
 
@@ -524,7 +523,7 @@ public class ZKDatabase {
      */
     public void deserializeSnapshot(InputArchive ia) throws IOException {
         clear();
-        SerializeUtils.deserializeSnapshot(getDataTree(),ia,getSessionWithTimeOuts());
+        SerializeUtils.deserializeSnapshot(getDataTree(), ia, getSessionWithTimeOuts());
         initialized = true;
     }
 
@@ -535,7 +534,7 @@ public class ZKDatabase {
      * @throws InterruptedException
      */
     public void serializeSnapshot(OutputArchive oa) throws IOException,
-    InterruptedException {
+            InterruptedException {
         SerializeUtils.serializeSnapshot(getDataTree(), oa, getSessionWithTimeOuts());
     }
 
@@ -584,14 +583,6 @@ public class ZKDatabase {
             System.out.println("configuration node missing - should not happen");
         }
     }
- 
-    /**
-     * Use for unit testing, so we can turn this feature on/off
-     * @param snapshotSizeFactor Set to minus value to turn this off.
-     */
-    public void setSnapshotSizeFactor(double snapshotSizeFactor) {
-        this.snapshotSizeFactor = snapshotSizeFactor;
-    }
 
     /**
      * Check whether the given watcher exists in datatree
@@ -609,7 +600,7 @@ public class ZKDatabase {
 
     /**
      * Remove watch from the datatree
-     * 
+     *
      * @param path
      *            node to remove watches from
      * @param type

@@ -1,22 +1,23 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.common;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.KeyStore;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -25,13 +26,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.KeyStore;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.zookeeper.common.X509Exception.KeyManagerException;
 import static org.apache.zookeeper.common.X509Exception.SSLContextException;
@@ -41,13 +35,12 @@ import static org.apache.zookeeper.common.X509Exception.TrustManagerException;
  * Utility code for X509 handling
  */
 public class X509Util {
-    private static final Logger LOG = LoggerFactory.getLogger(X509Util.class);
-
     public static final String SSL_KEYSTORE_LOCATION = "zookeeper.ssl.keyStore.location";
     public static final String SSL_KEYSTORE_PASSWD = "zookeeper.ssl.keyStore.password";
     public static final String SSL_TRUSTSTORE_LOCATION = "zookeeper.ssl.trustStore.location";
     public static final String SSL_TRUSTSTORE_PASSWD = "zookeeper.ssl.trustStore.password";
     public static final String SSL_AUTHPROVIDER = "zookeeper.ssl.authProvider";
+    private static final Logger LOG = LoggerFactory.getLogger(X509Util.class);
 
     public static SSLContext createSSLContext() throws SSLContextException {
         KeyManager[] keyManagers = null;
@@ -131,7 +124,8 @@ public class X509Util {
             if (inputStream != null) {
                 try {
                     inputStream.close();
-                } catch (IOException e) {}
+                } catch (IOException e) {
+                }
             }
         }
     }
@@ -160,7 +154,8 @@ public class X509Util {
             if (inputStream != null) {
                 try {
                     inputStream.close();
-                } catch (IOException e) {}
+                } catch (IOException e) {
+                }
             }
         }
     }

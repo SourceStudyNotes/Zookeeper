@@ -1,22 +1,20 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.client;
+
+import org.apache.zookeeper.common.X509Exception.SSLContextException;
+import org.apache.zookeeper.common.X509Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,15 +29,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import org.apache.zookeeper.common.X509Exception.SSLContextException;
-import org.apache.zookeeper.common.X509Util;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class FourLetterWordMain {
+    protected static final Logger LOG = LoggerFactory.getLogger(FourLetterWordMain.class);
     //in milliseconds, socket should connect/read within this period otherwise SocketTimeoutException
     private static final int DEFAULT_SOCKET_TIMEOUT = 5000;
-    protected static final Logger LOG = LoggerFactory.getLogger(FourLetterWordMain.class);
+
     /**
      * Send the 4letterword
      * @param host the destination host
@@ -84,8 +78,8 @@ public class FourLetterWordMain {
             throws IOException, SSLContextException {
         LOG.info("connecting to {} {}", host, port);
         Socket sock;
-        InetSocketAddress hostaddress= host != null ? new InetSocketAddress(host, port) :
-            new InetSocketAddress(InetAddress.getByName(null), port);
+        InetSocketAddress hostaddress = host != null ? new InetSocketAddress(host, port) :
+                new InetSocketAddress(InetAddress.getByName(null), port);
         if (secure) {
             LOG.info("using secure socket");
             SSLContext sslContext = X509Util.createSSLContext();
@@ -116,7 +110,7 @@ public class FourLetterWordMain {
                             new InputStreamReader(sock.getInputStream()));
             StringBuilder sb = new StringBuilder();
             String line;
-            while((line = reader.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 sb.append(line + "\n");
             }
             return sb.toString();
@@ -129,10 +123,9 @@ public class FourLetterWordMain {
             }
         }
     }
-    
+
     public static void main(String[] args)
-            throws IOException, SSLContextException
-    {
+            throws IOException, SSLContextException {
         if (args.length == 3) {
             System.out.println(send4LetterWord(args[0], Integer.parseInt(args[1]), args[2]));
         } else if (args.length == 4) {

@@ -6,11 +6,19 @@
  */
 Raphael.fn.g.dotchart = function (x, y, width, height, valuesx, valuesy, size, opts) {
     function drawAxis(ax) {
-        +ax[0] && (ax[0] = paper.g.axis(x + gutter, y + gutter, width - 2 * gutter, minx, maxx, opts.axisxstep || Math.floor((width - 2 * gutter) / 20), 2, opts.axisxlabels || null, opts.axisxtype || "t"));
-        +ax[1] && (ax[1] = paper.g.axis(x + width - gutter, y + height - gutter, height - 2 * gutter, miny, maxy, opts.axisystep || Math.floor((height - 2 * gutter) / 20), 3, opts.axisylabels || null, opts.axisytype || "t"));
-        +ax[2] && (ax[2] = paper.g.axis(x + gutter, y + height - gutter + maxR, width - 2 * gutter, minx, maxx, opts.axisxstep || Math.floor((width - 2 * gutter) / 20), 0, opts.axisxlabels || null, opts.axisxtype || "t"));
-        +ax[3] && (ax[3] = paper.g.axis(x + gutter - maxR, y + height - gutter, height - 2 * gutter, miny, maxy, opts.axisystep || Math.floor((height - 2 * gutter) / 20), 1, opts.axisylabels || null, opts.axisytype || "t"));
+        +ax[0] && (ax[0] =
+            paper.g.axis(x + gutter, y + gutter, width - 2 * gutter, minx, maxx, opts.axisxstep || Math.floor((width - 2 * gutter) / 20), 2, opts.axisxlabels || null, opts.axisxtype || "t"));
+        +ax[1] && (ax[1] =
+            paper.g.axis(x + width - gutter, y + height - gutter, height - 2 * gutter, miny, maxy, opts.axisystep || Math.floor((height - 2 * gutter) / 20), 3, opts.axisylabels || null, opts.axisytype
+                                                                                                                                                                                          || "t"));
+        +ax[2] && (ax[2] =
+            paper.g.axis(x + gutter, y + height - gutter + maxR, width - 2 * gutter, minx, maxx, opts.axisxstep || Math.floor((width - 2 * gutter) / 20), 0, opts.axisxlabels || null, opts.axisxtype
+                                                                                                                                                                                       || "t"));
+        +ax[3] && (ax[3] =
+            paper.g.axis(x + gutter - maxR, y + height - gutter, height - 2 * gutter, miny, maxy, opts.axisystep || Math.floor((height - 2 * gutter) / 20), 1, opts.axisylabels || null, opts.axisytype
+                                                                                                                                                                                         || "t"));
     }
+
     opts = opts || {};
     var xdim = this.g.snapEnds(Math.min.apply(Math, valuesx), Math.max.apply(Math, valuesx), valuesx.length - 1),
         minx = xdim.from,
@@ -45,13 +53,17 @@ Raphael.fn.g.dotchart = function (x, y, width, height, valuesx, valuesy, size, o
             b[i] = bb;
         }
         gutter = Math.max.apply(Math, g.concat(gutter));
-        for (var i = 0, ii = ax.length; i < ii; i++) if (ax[i].all) {
-            ax[i].remove();
-            ax[i] = 1;
+        for (var i = 0, ii = ax.length; i < ii; i++) {
+            if (ax[i].all) {
+                ax[i].remove();
+                ax[i] = 1;
+            }
         }
         drawAxis(ax);
-        for (var i = 0, ii = ax.length; i < ii; i++) if (ax[i].all) {
-            axis.push(ax[i].all);
+        for (var i = 0, ii = ax.length; i < ii; i++) {
+            if (ax[i].all) {
+                axis.push(ax[i].all);
+            }
         }
         res.axis = axis;
     }
@@ -61,7 +73,8 @@ Raphael.fn.g.dotchart = function (x, y, width, height, valuesx, valuesy, size, o
         var sym = this.raphael.is(symbol, "array") ? symbol[i] : symbol,
             X = x + gutter + (valuesx[i] - minx) * kx,
             Y = y + height - gutter - (valuesy[i] - miny) * ky;
-        sym && R[i] && series.push(this.g[sym](X, Y, R[i]).attr({fill: opts.heat ? this.g.colorValue(R[i], maxR) : Raphael.fn.g.colors[0], "fill-opacity": opts.opacity ? R[i] / max : 1, stroke: "none"}));
+        sym && R[i] && series.push(
+            this.g[sym](X, Y, R[i]).attr({fill: opts.heat ? this.g.colorValue(R[i], maxR) : Raphael.fn.g.colors[0], "fill-opacity": opts.opacity ? R[i] / max : 1, stroke: "none"}));
     }
     var covers = this.set();
     for (var i = 0, ii = valuesy.length; i < ii; i++) {

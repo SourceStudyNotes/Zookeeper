@@ -1,19 +1,12 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.util;
@@ -47,7 +40,7 @@ import java.util.Map.Entry;
 
 public class SerializeUtils {
     private static final Logger LOG = LoggerFactory.getLogger(SerializeUtils.class);
-    
+
     public static Record deserializeTxn(byte txnBytes[], TxnHeader hdr)
             throws IOException {
         final ByteArrayInputStream bais = new ByteArrayInputStream(txnBytes);
@@ -57,47 +50,47 @@ public class SerializeUtils {
         bais.mark(bais.available());
         Record txn = null;
         switch (hdr.getType()) {
-        case OpCode.createSession:
-            // This isn't really an error txn; it just has the same
-            // format. The error represents the timeout
-            txn = new CreateSessionTxn();
-            break;
-        case OpCode.closeSession:
-            return null;
-        case OpCode.create:
-        case OpCode.create2:
-            txn = new CreateTxn();
-            break;
-        case OpCode.createContainer:
-            txn = new CreateContainerTxn();
-            break;
-        case OpCode.delete:
-        case OpCode.deleteContainer:
-            txn = new DeleteTxn();
-            break;
-        case OpCode.reconfig:
-        case OpCode.setData:
-            txn = new SetDataTxn();
-            break;
-        case OpCode.setACL:
-            txn = new SetACLTxn();
-            break;
-        case OpCode.error:
-            txn = new ErrorTxn();
-            break;
-        case OpCode.multi:
-            txn = new MultiTxn();
-            break;
-        default:
-            throw new IOException("Unsupported Txn with type=%d" + hdr.getType());
+            case OpCode.createSession:
+                // This isn't really an error txn; it just has the same
+                // format. The error represents the timeout
+                txn = new CreateSessionTxn();
+                break;
+            case OpCode.closeSession:
+                return null;
+            case OpCode.create:
+            case OpCode.create2:
+                txn = new CreateTxn();
+                break;
+            case OpCode.createContainer:
+                txn = new CreateContainerTxn();
+                break;
+            case OpCode.delete:
+            case OpCode.deleteContainer:
+                txn = new DeleteTxn();
+                break;
+            case OpCode.reconfig:
+            case OpCode.setData:
+                txn = new SetDataTxn();
+                break;
+            case OpCode.setACL:
+                txn = new SetACLTxn();
+                break;
+            case OpCode.error:
+                txn = new ErrorTxn();
+                break;
+            case OpCode.multi:
+                txn = new MultiTxn();
+                break;
+            default:
+                throw new IOException("Unsupported Txn with type=%d" + hdr.getType());
         }
         if (txn != null) {
             try {
                 txn.deserialize(ia, "txn");
-            } catch(EOFException e) {
+            } catch (EOFException e) {
                 // perhaps this is a V0 Create
                 if (hdr.getType() == OpCode.create) {
-                    CreateTxn create = (CreateTxn)txn;
+                    CreateTxn create = (CreateTxn) txn;
                     bais.reset();
                     CreateTxnV0 createv0 = new CreateTxnV0();
                     createv0.deserialize(ia, "txn");
@@ -116,8 +109,8 @@ public class SerializeUtils {
         return txn;
     }
 
-    public static void deserializeSnapshot(DataTree dt,InputArchive ia,
-            Map<Long, Integer> sessions) throws IOException {
+    public static void deserializeSnapshot(DataTree dt, InputArchive ia,
+                                           Map<Long, Integer> sessions) throws IOException {
         int count = ia.readInt("count");
         while (count > 0) {
             long id = ia.readLong("id");
@@ -126,15 +119,15 @@ public class SerializeUtils {
             if (LOG.isTraceEnabled()) {
                 ZooTrace.logTraceMessage(LOG, ZooTrace.SESSION_TRACE_MASK,
                         "loadData --- session in archive: " + id
-                        + " with timeout: " + to);
+                                + " with timeout: " + to);
             }
             count--;
         }
         dt.deserialize(ia, "tree");
     }
 
-    public static void serializeSnapshot(DataTree dt,OutputArchive oa,
-            Map<Long, Integer> sessions) throws IOException {
+    public static void serializeSnapshot(DataTree dt, OutputArchive oa,
+                                         Map<Long, Integer> sessions) throws IOException {
         HashMap<Long, Integer> sessSnap = new HashMap<Long, Integer>(sessions);
         oa.writeInt(sessSnap.size(), "count");
         for (Entry<Long, Integer> entry : sessSnap.entrySet()) {

@@ -4,8 +4,7 @@
  * Copyright (c) 2009 Dmitry Baranovskiy (http://g.raphaeljs.com)
  * Licensed under the MIT (http://www.opensource.org/licenses/mit-license.php) license.
  */
- 
- 
+
 (function () {
     Raphael.fn.g = Raphael.fn.g || {};
     Raphael.fn.g.markers = {
@@ -70,49 +69,49 @@
         y = Math.round(y);
         switch (ending) {
             case "round":
-            if (!dir) {
-                var r = Math.floor(height / 2);
-                if (width < r) {
-                    r = width;
-                    path = ["M", x + .5, y + .5 - Math.floor(height / 2), "l", 0, 0, "a", r, Math.floor(height / 2), 0, 0, 1, 0, height, "l", 0, 0, "z"];
+                if (!dir) {
+                    var r = Math.floor(height / 2);
+                    if (width < r) {
+                        r = width;
+                        path = ["M", x + .5, y + .5 - Math.floor(height / 2), "l", 0, 0, "a", r, Math.floor(height / 2), 0, 0, 1, 0, height, "l", 0, 0, "z"];
+                    } else {
+                        path = ["M", x + .5, y + .5 - r, "l", width - r, 0, "a", r, r, 0, 1, 1, 0, height, "l", r - width, 0, "z"];
+                    }
                 } else {
-                    path = ["M", x + .5, y + .5 - r, "l", width - r, 0, "a", r, r, 0, 1, 1, 0, height, "l", r - width, 0, "z"];
+                    var r = Math.floor(width / 2);
+                    if (height < r) {
+                        r = height;
+                        path = ["M", x - Math.floor(width / 2), y, "l", 0, 0, "a", Math.floor(width / 2), r, 0, 0, 1, width, 0, "l", 0, 0, "z"];
+                    } else {
+                        path = ["M", x - r, y, "l", 0, r - height, "a", r, r, 0, 1, 1, width, 0, "l", 0, height - r, "z"];
+                    }
                 }
-            } else {
-                var r = Math.floor(width / 2);
-                if (height < r) {
-                    r = height;
-                    path = ["M", x - Math.floor(width / 2), y, "l", 0, 0, "a", Math.floor(width / 2), r, 0, 0, 1, width, 0, "l", 0, 0, "z"];
-                } else {
-                    path = ["M", x - r, y, "l", 0, r - height, "a", r, r, 0, 1, 1, width, 0, "l", 0, height - r, "z"];
-                }
-            }
-            break;
+                break;
             case "sharp":
-            if (!dir) {
-                var half = Math.floor(height / 2);
-                path = ["M", x, y + half, "l", 0, -height, Math.max(width - half, 0), 0, Math.min(half, width), half, -Math.min(half, width), half + (half * 2 < height), "z"];
-            } else {
-                var half = Math.floor(width / 2);
-                path = ["M", x + half, y, "l", -width, 0, 0, -Math.max(height - half, 0), half, -Math.min(half, height), half, Math.min(half, height), half, "z"];
-            }
-            break;
+                if (!dir) {
+                    var half = Math.floor(height / 2);
+                    path = ["M", x, y + half, "l", 0, -height, Math.max(width - half, 0), 0, Math.min(half, width), half, -Math.min(half, width), half + (half * 2 < height), "z"];
+                } else {
+                    var half = Math.floor(width / 2);
+                    path = ["M", x + half, y, "l", -width, 0, 0, -Math.max(height - half, 0), half, -Math.min(half, height), half, Math.min(half, height), half, "z"];
+                }
+                break;
             case "square":
-            if (!dir) {
-                path = ["M", x, y + Math.floor(height / 2), "l", 0, -height, width, 0, 0, height, "z"];
-            } else {
-                path = ["M", x + Math.floor(width / 2), y, "l", 1 - width, 0, 0, -height, width - 1, 0, "z"];
-            }
-            break;
+                if (!dir) {
+                    path = ["M", x, y + Math.floor(height / 2), "l", 0, -height, width, 0, 0, height, "z"];
+                } else {
+                    path = ["M", x + Math.floor(width / 2), y, "l", 1 - width, 0, 0, -height, width - 1, 0, "z"];
+                }
+                break;
             case "soft":
-            var r;
-            if (!dir) {
-                r = Math.min(width, Math.round(height / 5));
-                path = ["M", x + .5, y + .5 - Math.floor(height / 2), "l", width - r, 0, "a", r, r, 0, 0, 1, r, r, "l", 0, height - r * 2, "a", r, r, 0, 0, 1, -r, r, "l", r - width, 0, "z"];
-            } else {
-                r = Math.min(Math.round(width / 5), height);
-                path = ["M", x - Math.floor(width / 2), y, "l", 0, r - height, "a", r, r, 0, 0, 1, r, -r, "l", width - 2 * r, 0, "a", r, r, 0, 0, 1, r, r, "l", 0, height - r, "z"];
-            }
+                var r;
+                if (!dir) {
+                    r = Math.min(width, Math.round(height / 5));
+                    path = ["M", x + .5, y + .5 - Math.floor(height / 2), "l", width - r, 0, "a", r, r, 0, 0, 1, r, r, "l", 0, height - r * 2, "a", r, r, 0, 0, 1, -r, r, "l", r - width, 0, "z"];
+                } else {
+                    r = Math.min(Math.round(width / 5), height);
+                    path = ["M", x - Math.floor(width / 2), y, "l", 0, r - height, "a", r, r, 0, 0, 1, r, -r, "l", width - 2 * r, 0, "a", r, r, 0, 0, 1, r, r, "l", 0, height - r, "z"];
+                }
         }
         if (isPath) {
             return path.join(",");
@@ -190,12 +189,18 @@
             this.rotate(0, x, y);
             var bb = this[1].getBBox();
             if (bb.height >= r * 2) {
-                this[0].attr({path: ["M", x, y + r, "a", r, r, 0, 1, 1, 0, -r * 2, r, r, 0, 1, 1, 0, r * 2, "m", 0, -r * 2 -d, "a", r + d, r + d, 0, 1, 0, 0, (r + d) * 2, "L", x + r + d, y + bb.height / 2 + d, "l", bb.width + 2 * d, 0, 0, -bb.height - 2 * d, -bb.width - 2 * d, 0, "L", x, y - r - d].join(",")});
+                this[0].attr({
+                                 path: ["M", x, y + r, "a", r, r, 0, 1, 1, 0, -r * 2, r, r, 0, 1, 1, 0, r * 2, "m", 0, -r * 2 - d, "a", r + d, r + d, 0, 1, 0, 0, (r + d) * 2, "L", x + r + d,
+                                        y + bb.height / 2 + d, "l", bb.width + 2 * d, 0, 0, -bb.height - 2 * d, -bb.width - 2 * d, 0, "L", x, y - r - d].join(",")
+                             });
             } else {
                 var dx = Math.sqrt(Math.pow(r + d, 2) - Math.pow(bb.height / 2 + d, 2));
                 // ["c", -R, 0, -r, R - r, -r, -r, 0, -R, r - R, -r, r, -r, R, 0, r, r - R, r, r, 0, R, R - r, r, -r, r]
                 // "a", r, r, 0, 1, 1, 0, -r * 2, r, r, 0, 1, 1, 0, r * 2,
-                this[0].attr({path: ["M", x, y + r, "c", -R, 0, -r, R - r, -r, -r, 0, -R, r - R, -r, r, -r, R, 0, r, r - R, r, r, 0, R, R - r, r, -r, r, "M", x + dx, y - bb.height / 2 - d, "a", r + d, r + d, 0, 1, 0, 0, bb.height + 2 * d, "l", r + d - dx + bb.width + 2 * d, 0, 0, -bb.height - 2 * d, "L", x + dx, y - bb.height / 2 - d].join(",")});
+                this[0].attr({
+                                 path: ["M", x, y + r, "c", -R, 0, -r, R - r, -r, -r, 0, -R, r - R, -r, r, -r, R, 0, r, r - R, r, r, 0, R, R - r, r, -r, r, "M", x + dx, y - bb.height / 2 - d, "a",
+                                        r + d, r + d, 0, 1, 0, 0, bb.height + 2 * d, "l", r + d - dx + bb.width + 2 * d, 0, 0, -bb.height - 2 * d, "L", x + dx, y - bb.height / 2 - d].join(",")
+                             });
             }
             this[1].attr({x: x + r + d + bb.width / 2, y: y});
             angle = (360 - angle) % 360;
@@ -217,10 +222,10 @@
             dx = [0, w + size * 2, 0, -w - size * 2],
             dy = [-h * 2 - size * 3, -h - size, 0, -h - size],
             p = ["M", x - dx[dir], y - dy[dir], "l", -size, (dir == 2) * -size, -Math.max(w - size, 0), 0, "a", size, size, 0, 0, 1, -size, -size,
-                "l", 0, -Math.max(h - size, 0), (dir == 3) * -size, -size, (dir == 3) * size, -size, 0, -Math.max(h - size, 0), "a", size, size, 0, 0, 1, size, -size,
-                "l", Math.max(w - size, 0), 0, size, !dir * -size, size, !dir * size, Math.max(w - size, 0), 0, "a", size, size, 0, 0, 1, size, size,
-                "l", 0, Math.max(h - size, 0), (dir == 1) * size, size, (dir == 1) * -size, size, 0, Math.max(h - size, 0), "a", size, size, 0, 0, 1, -size, size,
-                "l", -Math.max(w - size, 0), 0, "z"].join(","),
+                 "l", 0, -Math.max(h - size, 0), (dir == 3) * -size, -size, (dir == 3) * size, -size, 0, -Math.max(h - size, 0), "a", size, size, 0, 0, 1, size, -size,
+                 "l", Math.max(w - size, 0), 0, size, !dir * -size, size, !dir * size, Math.max(w - size, 0), 0, "a", size, size, 0, 0, 1, size, size,
+                 "l", 0, Math.max(h - size, 0), (dir == 1) * size, size, (dir == 1) * -size, size, 0, Math.max(h - size, 0), "a", size, size, 0, 0, 1, -size, size,
+                 "l", -Math.max(w - size, 0), 0, "z"].join(","),
             xy = [{x: x, y: y + size * 2 + h}, {x: x - size * 2 - w, y: y}, {x: x, y: y - size * 2 - h}, {x: x + size * 2 + w, y: y}][dir];
         set.translate(xy.x - w - bb.x, xy.y - h - bb.y);
         return this.path(p).attr({fill: "#000", stroke: "none"}).insertBefore(set.node ? set : set[0]);
@@ -242,10 +247,10 @@
                 dx = [0, w + size * 2, 0, -w - size * 2],
                 dy = [-h * 2 - size * 3, -h - size, 0, -h - size],
                 p = ["M", X - dx[dir], Y - dy[dir], "l", -size, (dir == 2) * -size, -Math.max(w - size, 0), 0, "a", size, size, 0, 0, 1, -size, -size,
-                    "l", 0, -Math.max(h - size, 0), (dir == 3) * -size, -size, (dir == 3) * size, -size, 0, -Math.max(h - size, 0), "a", size, size, 0, 0, 1, size, -size,
-                    "l", Math.max(w - size, 0), 0, size, !dir * -size, size, !dir * size, Math.max(w - size, 0), 0, "a", size, size, 0, 0, 1, size, size,
-                    "l", 0, Math.max(h - size, 0), (dir == 1) * size, size, (dir == 1) * -size, size, 0, Math.max(h - size, 0), "a", size, size, 0, 0, 1, -size, size,
-                    "l", -Math.max(w - size, 0), 0, "z"].join(","),
+                     "l", 0, -Math.max(h - size, 0), (dir == 3) * -size, -size, (dir == 3) * size, -size, 0, -Math.max(h - size, 0), "a", size, size, 0, 0, 1, size, -size,
+                     "l", Math.max(w - size, 0), 0, size, !dir * -size, size, !dir * size, Math.max(w - size, 0), 0, "a", size, size, 0, 0, 1, size, size,
+                     "l", 0, Math.max(h - size, 0), (dir == 1) * size, size, (dir == 1) * -size, size, 0, Math.max(h - size, 0), "a", size, size, 0, 0, 1, -size, size,
+                     "l", -Math.max(w - size, 0), 0, "z"].join(","),
                 xy = [{x: X, y: Y + size * 2 + h}, {x: X - size * 2 - w, y: Y}, {x: X, y: Y - size * 2 - h}, {x: X + size * 2 + w, y: Y}][dir];
             if (withAnimation) {
                 this[0].animate({path: p}, 500, ">");
@@ -352,9 +357,11 @@
         if (f == t) {
             return {from: f, to: t, power: 0};
         }
+
         function round(a) {
             return Math.abs(a - .5) < .25 ? Math.floor(a) + .5 : Math.round(a);
         }
+
         var d = (t - f) / steps,
             r = Math.floor(d),
             R = r,
@@ -364,7 +371,7 @@
                 i--;
                 R = Math.floor(d * Math.pow(10, i)) / Math.pow(10, i);
             }
-            i ++;
+            i++;
         } else {
             while (!r) {
                 i = i || 1;
@@ -394,19 +401,21 @@
         d = (t - f) / steps;
         var label = f,
             rnd = i > 0 ? i : 0;
-            dx = length / steps;
+        dx = length / steps;
         if (+orientation == 1 || +orientation == 3) {
             var Y = y,
                 addon = (orientation - 1 ? 1 : -1) * (dashsize + 3 + !!(orientation - 1));
             while (Y >= y - length) {
                 type != "-" && type != " " && (path = path.concat(["M", x - (type == "+" || type == "|" ? dashsize : !(orientation - 1) * dashsize * 2), Y + .5, "l", dashsize * 2 + 1, 0]));
-                text.push(this.text(x + addon, Y, (labels && labels[j++]) || (Math.round(label) == label ? label : +label.toFixed(rnd))).attr(this.g.txtattr).attr({"text-anchor": orientation - 1 ? "start" : "end"}));
+                text.push(this.text(x + addon, Y, (labels && labels[j++]) || (Math.round(label) == label ? label : +label.toFixed(rnd))).attr(this.g.txtattr)
+                              .attr({"text-anchor": orientation - 1 ? "start" : "end"}));
                 label += d;
                 Y -= dx;
             }
             if (Math.round(Y + dx - (y - length))) {
                 type != "-" && type != " " && (path = path.concat(["M", x - (type == "+" || type == "|" ? dashsize : !(orientation - 1) * dashsize * 2), y - length + .5, "l", dashsize * 2 + 1, 0]));
-                text.push(this.text(x + addon, y - length, (labels && labels[j]) || (Math.round(label) == label ? label : +label.toFixed(rnd))).attr(this.g.txtattr).attr({"text-anchor": orientation - 1 ? "start" : "end"}));
+                text.push(this.text(x + addon, y - length, (labels && labels[j]) || (Math.round(label) == label ? label : +label.toFixed(rnd))).attr(this.g.txtattr)
+                              .attr({"text-anchor": orientation - 1 ? "start" : "end"}));
             }
         } else {
             var X = x,
@@ -419,17 +428,17 @@
             while (X <= x + length) {
 
                 text.push(txt = this.text(X, y + addon, (labels && labels[j++]) || (Math.round(label) == label ? label : +label.toFixed(rnd))).attr(this.g.txtattr));
-		var bb = txt.getBBox();
-		var ds = dashsize;
+                var bb = txt.getBBox();
+                var ds = dashsize;
                 if (prev >= bb.x - 5) {
-		    text.pop(text.length - 1).remove();
-		    ds = 1;
+                    text.pop(text.length - 1).remove();
+                    ds = 1;
                 } else {
                     prev = bb.x + bb.width;
                 }
 
-		type != "-" && type != " " && (path = path.concat(["M", X + .5, y - (type == "+" ? ds : !!orientation * ds * 2), "l", 0, ds * 2 + 1]));
-                
+                type != "-" && type != " " && (path = path.concat(["M", X + .5, y - (type == "+" ? ds : !!orientation * ds * 2), "l", 0, ds * 2 + 1]));
+
                 label += d;
                 X += dx;
             }

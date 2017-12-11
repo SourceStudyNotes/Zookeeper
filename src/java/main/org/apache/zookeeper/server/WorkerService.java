@@ -1,34 +1,27 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server;
 
+import org.apache.zookeeper.common.Time;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.zookeeper.common.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * WorkerService is a worker thread pool for running tasks and is implemented
@@ -46,10 +39,10 @@ import org.slf4j.LoggerFactory;
  */
 public class WorkerService {
     private static final Logger LOG =
-        LoggerFactory.getLogger(WorkerService.class);
+            LoggerFactory.getLogger(WorkerService.class);
 
     private final ArrayList<ExecutorService> workers =
-        new ArrayList<ExecutorService>();
+            new ArrayList<ExecutorService>();
 
     private final String threadNamePrefix;
     private int numWorkerThreads;
@@ -75,24 +68,6 @@ public class WorkerService {
     }
 
     /**
-     * Callers should implement a class extending WorkRequest in order to
-     * schedule work with the service.
-     */
-    public static abstract class WorkRequest {
-        /**
-         * Must be implemented. Is called when the work request is run.
-         */
-        public abstract void doWork() throws Exception;
-
-        /**
-         * (Optional) If implemented, is called if the service is stopped
-         * or unable to schedule the request.
-         */
-        public void cleanup() {
-        }
-    }
-
-    /**
      * Schedule work to be done.  If a worker thread pool is not being
      * used, work is done directly by this thread. This schedule API is
      * for use with non-assignable WorkerServices. For assignable
@@ -115,7 +90,7 @@ public class WorkerService {
         }
 
         ScheduledWorkRequest scheduledWorkRequest =
-            new ScheduledWorkRequest(workRequest);
+                new ScheduledWorkRequest(workRequest);
 
         // If we have a worker thread pool, use that; otherwise, do the work
         // directly.
@@ -143,27 +118,67 @@ public class WorkerService {
         }
     }
 
-    private class ScheduledWorkRequest extends ZooKeeperThread {
-        private final WorkRequest workRequest;
-
-        ScheduledWorkRequest(WorkRequest workRequest) {
-            super("ScheduledWorkRequest");
-            this.workRequest = workRequest;
-        }
-
-        @Override
-        public void run() {
-            try {
-                // Check if stopped while request was on queue
-                if (stopped) {
-                    workRequest.cleanup();
-                    return;
+    public void start() {
+        if (numWorkerThreads > 0) {
+            if (threadsAreAssignable) {
+                for (int i = 1; i <= numWorkerThreads; ++i) {
+                    workers.add(Executors.newFixedThreadPool(
+                            1, new DaemonThreadFactory(threadNamePrefix, i)));
                 }
-                workRequest.doWork();
-            } catch (Exception e) {
-                LOG.warn("Unexpected exception", e);
-                workRequest.cleanup();
+            } else {
+                workers.add(Executors.newFixedThreadPool(
+                        numWorkerThreads, new DaemonThreadFactory(threadNamePrefix)));
             }
+        }
+        stopped = false;
+    }
+
+    public void stop() {
+        stopped = true;
+
+        // Signal for graceful shutdown
+        for (ExecutorService worker : workers) {
+            worker.shutdown();
+        }
+    }
+
+    public void join(long shutdownTimeoutMS) {
+        // Give the worker threads time to finish executing
+        long now = Time.currentElapsedTime();
+        long endTime = now + shutdownTimeoutMS;
+        for (ExecutorService worker : workers) {
+            boolean terminated = false;
+            while ((now = Time.currentElapsedTime()) <= endTime) {
+                try {
+                    terminated = worker.awaitTermination(
+                            endTime - now, TimeUnit.MILLISECONDS);
+                    break;
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
+            if (!terminated) {
+                // If we've timed out, do a hard shutdown
+                worker.shutdownNow();
+            }
+        }
+    }
+
+    /**
+     * Callers should implement a class extending WorkRequest in order to
+     * schedule work with the service.
+     */
+    public static abstract class WorkRequest {
+        /**
+         * Must be implemented. Is called when the work request is run.
+         */
+        public abstract void doWork() throws Exception;
+
+        /**
+         * (Optional) If implemented, is called if the service is stopped
+         * or unable to schedule the request.
+         */
+        public void cleanup() {
         }
     }
 
@@ -185,15 +200,15 @@ public class WorkerService {
         DaemonThreadFactory(String name, int firstThreadNum) {
             threadNumber.set(firstThreadNum);
             SecurityManager s = System.getSecurityManager();
-            group = (s != null)? s.getThreadGroup() :
-                                 Thread.currentThread().getThreadGroup();
+            group = (s != null) ? s.getThreadGroup() :
+                    Thread.currentThread().getThreadGroup();
             namePrefix = name + "-";
         }
 
         public Thread newThread(Runnable r) {
             Thread t = new Thread(group, r,
-                                  namePrefix + threadNumber.getAndIncrement(),
-                                  0);
+                    namePrefix + threadNumber.getAndIncrement(),
+                    0);
             if (!t.isDaemon())
                 t.setDaemon(true);
             if (t.getPriority() != Thread.NORM_PRIORITY)
@@ -202,48 +217,26 @@ public class WorkerService {
         }
     }
 
-    public void start() {
-        if (numWorkerThreads > 0) {
-            if (threadsAreAssignable) {
-                for(int i = 1; i <= numWorkerThreads; ++i) {
-                    workers.add(Executors.newFixedThreadPool(
-                        1, new DaemonThreadFactory(threadNamePrefix, i)));
-                }
-            } else {
-                workers.add(Executors.newFixedThreadPool(
-                    numWorkerThreads, new DaemonThreadFactory(threadNamePrefix)));
-            }
+    private class ScheduledWorkRequest extends ZooKeeperThread {
+        private final WorkRequest workRequest;
+
+        ScheduledWorkRequest(WorkRequest workRequest) {
+            super("ScheduledWorkRequest");
+            this.workRequest = workRequest;
         }
-        stopped = false;
-    }
 
-    public void stop() {
-        stopped = true;
-
-        // Signal for graceful shutdown
-        for(ExecutorService worker : workers) {
-            worker.shutdown();
-        }
-    }
-
-    public void join(long shutdownTimeoutMS) {
-        // Give the worker threads time to finish executing
-        long now = Time.currentElapsedTime();
-        long endTime = now + shutdownTimeoutMS;
-        for(ExecutorService worker : workers) {
-            boolean terminated = false;
-            while ((now = Time.currentElapsedTime()) <= endTime) {
-                try {
-                    terminated = worker.awaitTermination(
-                        endTime - now, TimeUnit.MILLISECONDS);
-                    break;
-                } catch (InterruptedException e) {
-                    // ignore
+        @Override
+        public void run() {
+            try {
+                // Check if stopped while request was on queue
+                if (stopped) {
+                    workRequest.cleanup();
+                    return;
                 }
-            }
-            if (!terminated) {
-                // If we've timed out, do a hard shutdown
-                worker.shutdownNow();
+                workRequest.doWork();
+            } catch (Exception e) {
+                LOG.warn("Unexpected exception", e);
+                workRequest.cleanup();
             }
         }
     }

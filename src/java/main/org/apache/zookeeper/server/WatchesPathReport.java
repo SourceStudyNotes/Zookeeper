@@ -24,8 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A watch report, essentially a mapping of path to session IDs of sessions that
- * have set a watch on that path. This class is immutable.
+ * A watch report, essentially a mapping of path to session IDs of sessions that have set a watch on that path. This class is immutable.
  */
 public class WatchesPathReport {
 
@@ -34,8 +33,7 @@ public class WatchesPathReport {
     /**
      * Creates a new report.
      *
-     * @param path2Ids map of paths to session IDs of sessions that have set a
-     * watch on that path
+     * @param path2Ids map of paths to session IDs of sessions that have set a watch on that path
      */
     WatchesPathReport(Map<String, Set<Long>> path2Ids) {
         this.path2Ids = Collections.unmodifiableMap(deepCopy(path2Ids));
@@ -58,13 +56,12 @@ public class WatchesPathReport {
     public boolean hasSessions(String path) {
         return path2Ids.containsKey(path);
     }
+
     /**
-     * Gets the session IDs of sessions that have set watches on the given path.
-     * The returned set is immutable.
+     * Gets the session IDs of sessions that have set watches on the given path. The returned set is immutable.
      *
      * @param path session ID
-     * @return session IDs of sessions that have set watches on the path, or
-     * null if none
+     * @return session IDs of sessions that have set watches on the path, or null if none
      */
     public Set<Long> getSessions(String path) {
         Set<Long> s = path2Ids.get(path);
@@ -72,8 +69,7 @@ public class WatchesPathReport {
     }
 
     /**
-     * Converts this report to a map. The returned map is mutable, and changes
-     * to it do not reflect back into this report.
+     * Converts this report to a map. The returned map is mutable, and changes to it do not reflect back into this report.
      *
      * @return map representation of report
      */

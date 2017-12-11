@@ -1,28 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.persistence;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.jute.Record;
 import org.apache.zookeeper.KeeperException;
@@ -38,6 +25,12 @@ import org.apache.zookeeper.txn.TxnHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * This is a helper class
  * above the implementations
@@ -45,6 +38,12 @@ import org.slf4j.LoggerFactory;
  * classes
  */
 public class FileTxnSnapLog {
+    public final static int VERSION = 2;
+    public final static String version = "version-";
+    public static final String ZOOKEEPER_DATADIR_AUTOCREATE =
+            "zookeeper.datadir.autocreate";
+    public static final String ZOOKEEPER_DATADIR_AUTOCREATE_DEFAULT = "true";
+    private static final Logger LOG = LoggerFactory.getLogger(FileTxnSnapLog.class);
     //the direcotry containing the
     //the transaction logs
     private final File dataDir;
@@ -53,26 +52,6 @@ public class FileTxnSnapLog {
     private final File snapDir;
     private TxnLog txnLog;
     private SnapShot snapLog;
-    public final static int VERSION = 2;
-    public final static String version = "version-";
-
-    private static final Logger LOG = LoggerFactory.getLogger(FileTxnSnapLog.class);
-
-    public static final String ZOOKEEPER_DATADIR_AUTOCREATE =
-            "zookeeper.datadir.autocreate";
-
-    public static final String ZOOKEEPER_DATADIR_AUTOCREATE_DEFAULT = "true";
-
-    /**
-     * This listener helps
-     * the external apis calling
-     * restore to gather information
-     * while the data is being
-     * restored.
-     */
-    public interface PlayBackListener {
-        void onTxnLoaded(TxnHeader hdr, Record rec);
-    }
 
     /**
      * the constructor which takes the datadir and
@@ -156,10 +135,10 @@ public class FileTxnSnapLog {
      * @throws IOException
      */
     public long restore(DataTree dt, Map<Long, Integer> sessions,
-            PlayBackListener listener) throws IOException {
+                        PlayBackListener listener) throws IOException {
         snapLog.deserialize(dt, sessions);
         FileTxnLog txnLog = new FileTxnLog(dataDir);
-        TxnIterator itr = txnLog.read(dt.lastProcessedZxid+1);
+        TxnIterator itr = txnLog.read(dt.lastProcessedZxid + 1);
         long highestZxid = dt.lastProcessedZxid;
         TxnHeader hdr;
         try {
@@ -173,16 +152,16 @@ public class FileTxnSnapLog {
                 }
                 if (hdr.getZxid() < highestZxid && highestZxid != 0) {
                     LOG.error("{}(higestZxid) > {}(next log) for type {}",
-                            new Object[] { highestZxid, hdr.getZxid(),
-                                    hdr.getType() });
+                            new Object[]{highestZxid, hdr.getZxid(),
+                                    hdr.getType()});
                 } else {
                     highestZxid = hdr.getZxid();
                 }
                 try {
-                    processTransaction(hdr,dt,sessions, itr.getTxn());
-                } catch(KeeperException.NoNodeException e) {
-                   throw new IOException("Failed to process transaction type: " +
-                         hdr.getType() + " error: " + e.getMessage(), e);
+                    processTransaction(hdr, dt, sessions, itr.getTxn());
+                } catch (KeeperException.NoNodeException e) {
+                    throw new IOException("Failed to process transaction type: " +
+                            hdr.getType() + " error: " + e.getMessage(), e);
                 }
                 listener.onTxnLoaded(hdr, itr.getTxn());
                 if (!itr.next())
@@ -222,7 +201,7 @@ public class FileTxnSnapLog {
         FileTxnLog txnLog = new FileTxnLog(dataDir);
         return txnLog.read(zxid, fastForward);
     }
-    
+
     /**
      * process the transaction on the datatree
      * @param hdr the hdr of the transaction
@@ -230,35 +209,35 @@ public class FileTxnSnapLog {
      * @param sessions the sessions to be restored
      * @param txn the transaction to be applied
      */
-    public void processTransaction(TxnHeader hdr,DataTree dt,
-            Map<Long, Integer> sessions, Record txn)
-        throws KeeperException.NoNodeException {
+    public void processTransaction(TxnHeader hdr, DataTree dt,
+                                   Map<Long, Integer> sessions, Record txn)
+            throws KeeperException.NoNodeException {
         ProcessTxnResult rc;
         switch (hdr.getType()) {
-        case OpCode.createSession:
-            sessions.put(hdr.getClientId(),
-                    ((CreateSessionTxn) txn).getTimeOut());
-            if (LOG.isTraceEnabled()) {
-                ZooTrace.logTraceMessage(LOG,ZooTrace.SESSION_TRACE_MASK,
-                        "playLog --- create session in log: 0x"
-                                + Long.toHexString(hdr.getClientId())
-                                + " with timeout: "
-                                + ((CreateSessionTxn) txn).getTimeOut());
-            }
-            // give dataTree a chance to sync its lastProcessedZxid
-            rc = dt.processTxn(hdr, txn);
-            break;
-        case OpCode.closeSession:
-            sessions.remove(hdr.getClientId());
-            if (LOG.isTraceEnabled()) {
-                ZooTrace.logTraceMessage(LOG,ZooTrace.SESSION_TRACE_MASK,
-                        "playLog --- close session in log: 0x"
-                                + Long.toHexString(hdr.getClientId()));
-            }
-            rc = dt.processTxn(hdr, txn);
-            break;
-        default:
-            rc = dt.processTxn(hdr, txn);
+            case OpCode.createSession:
+                sessions.put(hdr.getClientId(),
+                        ((CreateSessionTxn) txn).getTimeOut());
+                if (LOG.isTraceEnabled()) {
+                    ZooTrace.logTraceMessage(LOG, ZooTrace.SESSION_TRACE_MASK,
+                            "playLog --- create session in log: 0x"
+                                    + Long.toHexString(hdr.getClientId())
+                                    + " with timeout: "
+                                    + ((CreateSessionTxn) txn).getTimeOut());
+                }
+                // give dataTree a chance to sync its lastProcessedZxid
+                rc = dt.processTxn(hdr, txn);
+                break;
+            case OpCode.closeSession:
+                sessions.remove(hdr.getClientId());
+                if (LOG.isTraceEnabled()) {
+                    ZooTrace.logTraceMessage(LOG, ZooTrace.SESSION_TRACE_MASK,
+                            "playLog --- close session in log: 0x"
+                                    + Long.toHexString(hdr.getClientId()));
+                }
+                rc = dt.processTxn(hdr, txn);
+                break;
+            default:
+                rc = dt.processTxn(hdr, txn);
         }
 
         /**
@@ -291,8 +270,8 @@ public class FileTxnSnapLog {
      * @throws IOException
      */
     public void save(DataTree dataTree,
-            ConcurrentHashMap<Long, Integer> sessionsWithTimeouts)
-        throws IOException {
+                     ConcurrentHashMap<Long, Integer> sessionsWithTimeouts)
+            throws IOException {
         long lastZxid = dataTree.lastProcessedZxid;
         File snapshotFile = new File(snapDir, Util.makeSnapshotName(lastZxid));
         LOG.info("Snapshotting: 0x{} to {}", Long.toHexString(lastZxid),
@@ -318,7 +297,7 @@ public class FileTxnSnapLog {
         truncLog.close();
 
         // re-open the txnLog and snapLog
-        // I'd rather just close/reopen this object itself, however that 
+        // I'd rather just close/reopen this object itself, however that
         // would have a big impact outside ZKDatabase as there are other
         // objects holding a reference to this object.
         txnLog = new FileTxnLog(dataDir);
@@ -397,11 +376,23 @@ public class FileTxnSnapLog {
         snapLog.close();
     }
 
+    /**
+     * This listener helps
+     * the external apis calling
+     * restore to gather information
+     * while the data is being
+     * restored.
+     */
+    public interface PlayBackListener {
+        void onTxnLoaded(TxnHeader hdr, Record rec);
+    }
+
     @SuppressWarnings("serial")
     public static class DatadirException extends IOException {
         public DatadirException(String msg) {
             super(msg);
         }
+
         public DatadirException(String msg, Exception e) {
             super(msg, e);
         }

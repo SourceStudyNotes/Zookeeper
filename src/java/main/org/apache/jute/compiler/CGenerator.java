@@ -1,37 +1,30 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.jute.compiler;
 
-import java.util.ArrayList;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
  * C++ Code generator front-end for Hadoop record I/O.
  */
 class CGenerator {
+    private final File outputDirectory;
     private String mName;
     private ArrayList<JFile> mInclFiles;
     private ArrayList<JRecord> mRecList;
-    private final File outputDirectory;
 
     /** Creates a new instance of CppGenerator
      *
@@ -41,8 +34,7 @@ class CGenerator {
      * @param outputDirectory
      */
     CGenerator(String name, ArrayList<JFile> ilist, ArrayList<JRecord> rlist,
-            File outputDirectory)
-    {
+               File outputDirectory) {
         this.outputDirectory = outputDirectory;
         mName = (new File(name)).getName();
         mInclFiles = ilist;
@@ -61,8 +53,8 @@ class CGenerator {
                         + outputDirectory);
             }
         }
-        FileWriter c = new FileWriter(new File(outputDirectory, mName+".c"));
-        FileWriter h = new FileWriter(new File(outputDirectory, mName+".h"));
+        FileWriter c = new FileWriter(new File(outputDirectory, mName + ".c"));
+        FileWriter h = new FileWriter(new File(outputDirectory, mName + ".h"));
 
         h.write("/**\n");
         h.write("* Licensed to the Apache Software Foundation (ASF) under one\n");
@@ -102,27 +94,27 @@ class CGenerator {
         c.write("*/\n");
         c.write("\n");
 
-        h.write("#ifndef __"+mName.toUpperCase().replace('.','_')+"__\n");
-        h.write("#define __"+mName.toUpperCase().replace('.','_')+"__\n");
+        h.write("#ifndef __" + mName.toUpperCase().replace('.', '_') + "__\n");
+        h.write("#define __" + mName.toUpperCase().replace('.', '_') + "__\n");
 
         h.write("#include \"recordio.h\"\n");
-        for (Iterator<JFile> i = mInclFiles.iterator(); i.hasNext();) {
+        for (Iterator<JFile> i = mInclFiles.iterator(); i.hasNext(); ) {
             JFile f = i.next();
-            h.write("#include \""+f.getName()+".h\"\n");
+            h.write("#include \"" + f.getName() + ".h\"\n");
         }
         // required for compilation from C++
         h.write("\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n");
 
         c.write("#include <stdlib.h>\n"); // need it for calloc() & free()
-        c.write("#include \""+mName+".h\"\n\n");
+        c.write("#include \"" + mName + ".h\"\n\n");
 
-        for (Iterator<JRecord> i = mRecList.iterator(); i.hasNext();) {
+        for (Iterator<JRecord> i = mRecList.iterator(); i.hasNext(); ) {
             JRecord jr = i.next();
             jr.genCCode(h, c);
         }
 
         h.write("\n#ifdef __cplusplus\n}\n#endif\n\n");
-        h.write("#endif //"+mName.toUpperCase().replace('.','_')+"__\n");
+        h.write("#endif //" + mName.toUpperCase().replace('.', '_') + "__\n");
 
         h.close();
         c.close();

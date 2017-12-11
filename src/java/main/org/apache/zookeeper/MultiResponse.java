@@ -22,9 +22,9 @@ import org.apache.jute.OutputArchive;
 import org.apache.jute.Record;
 import org.apache.zookeeper.proto.Create2Response;
 import org.apache.zookeeper.proto.CreateResponse;
+import org.apache.zookeeper.proto.ErrorResponse;
 import org.apache.zookeeper.proto.MultiHeader;
 import org.apache.zookeeper.proto.SetDataResponse;
-import org.apache.zookeeper.proto.ErrorResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,11 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Handles the response from a multi request.  Such a response consists of
- * a sequence of responses each prefixed by a MultiResponse that indicates
- * the type of the response.  The end of the list is indicated by a MultiHeader
- * with a negative type.  Each individual response is in the same format as
- * with the corresponding operation in the original request list.
+ * Handles the response from a multi request.  Such a response consists of a sequence of responses each prefixed by a MultiResponse that indicates the type of the response.  The end of the list is
+ * indicated by a MultiHeader with a negative type.  Each individual response is in the same format as with the corresponding operation in the original request list.
  */
 public class MultiResponse implements Record, Iterable<OpResult> {
     private List<OpResult> results = new ArrayList<OpResult>();
@@ -59,7 +56,7 @@ public class MultiResponse implements Record, Iterable<OpResult> {
         archive.startRecord(this, tag);
 
         for (OpResult result : results) {
-            int err = result.getType() == ZooDefs.OpCode.error ? ((OpResult.ErrorResult)result).getErr() : 0;
+            int err = result.getType() == ZooDefs.OpCode.error ? ((OpResult.ErrorResult) result).getErr() : 0;
 
             new MultiHeader(result.getType(), false, err).serialize(archive, tag);
 
@@ -68,9 +65,9 @@ public class MultiResponse implements Record, Iterable<OpResult> {
                     new CreateResponse(((OpResult.CreateResult) result).getPath()).serialize(archive, tag);
                     break;
                 case ZooDefs.OpCode.create2:
-                	OpResult.CreateResult createResult = (OpResult.CreateResult) result;
+                    OpResult.CreateResult createResult = (OpResult.CreateResult) result;
                     new Create2Response(createResult.getPath(),
-                    		createResult.getStat()).serialize(archive, tag);
+                            createResult.getStat()).serialize(archive, tag);
                     break;
                 case ZooDefs.OpCode.delete:
                 case ZooDefs.OpCode.check:
@@ -162,8 +159,7 @@ public class MultiResponse implements Record, Iterable<OpResult> {
                 }
             }
             return !i.hasNext();
-        }
-        else return other.results == null;
+        } else return other.results == null;
     }
 
     @Override

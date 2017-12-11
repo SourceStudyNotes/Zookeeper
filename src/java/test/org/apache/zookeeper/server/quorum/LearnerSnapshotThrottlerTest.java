@@ -1,22 +1,21 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.quorum;
+
+import org.apache.zookeeper.ZKTestCase;
+import org.junit.Assert;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,12 +24,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import org.apache.zookeeper.ZKTestCase;
-import org.junit.Assert;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LearnerSnapshotThrottlerTest extends ZKTestCase {
     private static final Logger LOG =
@@ -51,8 +44,7 @@ public class LearnerSnapshotThrottlerTest extends ZKTestCase {
             for (int i = 0; i < 6; i++) {
                 throttler.beginSnapshot(true);
             }
-        }
-        catch (SnapshotThrottleException ex) {
+        } catch (SnapshotThrottleException ex) {
             Assert.fail("essential snapshots should not be throttled");
         }
         throttler.endSnapshot();
@@ -66,8 +58,7 @@ public class LearnerSnapshotThrottlerTest extends ZKTestCase {
             for (int i = 0; i < 6; i++) {
                 throttler.beginSnapshot(true);
             }
-        }
-        catch (SnapshotThrottleException ex) {
+        } catch (SnapshotThrottleException ex) {
             Assert.fail("essential snapshots should not be throttled");
         }
         throttler.endSnapshot();
@@ -132,8 +123,7 @@ public class LearnerSnapshotThrottlerTest extends ZKTestCase {
                         snapshotProgressLatch.await();
 
                         throttler.endSnapshot();
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         return false;
                     }
 
@@ -162,8 +152,7 @@ public class LearnerSnapshotThrottlerTest extends ZKTestCase {
                     snapshotProgressLatch.countDown();
                     LearnerSnapshot second = throttler.beginSnapshot(false);
                     second.close();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     return false;
                 }
 
@@ -203,8 +192,7 @@ public class LearnerSnapshotThrottlerTest extends ZKTestCase {
                         throttler.endSnapshot();
 
                         return snapshotNumber <= 2;
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         LOG.error("Exception trying to begin snapshot", e);
                         return false;
                     }

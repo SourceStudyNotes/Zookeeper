@@ -1,30 +1,22 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server;
 
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.SessionExpiredException;
+
 import java.io.PrintWriter;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.SessionExpiredException;
-import org.apache.zookeeper.KeeperException.SessionMovedException;
 
 /**
  * This is the basic interface that ZooKeeperServer uses to track sessions. The
@@ -33,17 +25,6 @@ import org.apache.zookeeper.KeeperException.SessionMovedException;
  * shell to track information to be forwarded to the leader.
  */
 public interface SessionTracker {
-    public static interface Session {
-        long getSessionId();
-        int getTimeout();
-        boolean isClosing();
-    }
-    public static interface SessionExpirer {
-        void expire(Session session);
-
-        long getServerId();
-    }
-
     long createSession(int sessionTimeout);
 
     /**
@@ -132,4 +113,18 @@ public interface SessionTracker {
      * Returns a mapping of time to session IDs that expire at that time.
      */
     Map<Long, Set<Long>> getSessionExpiryMap();
+
+    public static interface Session {
+        long getSessionId();
+
+        int getTimeout();
+
+        boolean isClosing();
+    }
+
+    public static interface SessionExpirer {
+        void expire(Session session);
+
+        long getServerId();
+    }
 }

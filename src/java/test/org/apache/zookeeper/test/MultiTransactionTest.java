@@ -1,31 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test;
-
-import static org.junit.Assert.*;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.AsyncCallback.MultiCallback;
@@ -33,19 +17,19 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.OpResult;
-import org.apache.zookeeper.Transaction;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.OpResult.CheckResult;
 import org.apache.zookeeper.OpResult.CreateResult;
 import org.apache.zookeeper.OpResult.DeleteResult;
 import org.apache.zookeeper.OpResult.ErrorResult;
 import org.apache.zookeeper.OpResult.SetDataResult;
+import org.apache.zookeeper.Transaction;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZKParameterized;
 import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.SyncRequestProcessor;
-import org.apache.zookeeper.ZKParameterized;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,14 +39,22 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.*;
+
 @RunWith(Parameterized.class)
 @Parameterized.UseParametersRunnerFactory(ZKParameterized.RunnerFactory.class)
 public class MultiTransactionTest extends ClientBase {
     private static final Logger LOG = LoggerFactory.getLogger(MultiTransactionTest.class);
+    private final boolean useAsync;
     private ZooKeeper zk;
     private ZooKeeper zk_chroot;
-
-    private final boolean useAsync;
 
     public MultiTransactionTest(boolean useAsync) {
         this.useAsync = useAsync;
@@ -70,8 +62,8 @@ public class MultiTransactionTest extends ClientBase {
 
     @Parameters
     public static Collection<Object[]> configs() {
-        return Arrays.asList(new Object[][] {
-            { false }, { true },
+        return Arrays.asList(new Object[][]{
+                {false}, {true},
         });
     }
 
@@ -82,14 +74,8 @@ public class MultiTransactionTest extends ClientBase {
         zk = createClient();
     }
 
-    static class MultiResult {
-        int rc;
-        List<OpResult> results;
-        boolean finished = false;
-    }
-
     private List<OpResult> multi(ZooKeeper zk, Iterable<Op> ops)
-    throws KeeperException, InterruptedException {
+            throws KeeperException, InterruptedException {
         if (useAsync) {
             final MultiResult res = new MultiResult();
             zk.multi(ops, new MultiCallback() {
@@ -120,14 +106,14 @@ public class MultiTransactionTest extends ClientBase {
     }
 
     private void multiHavingErrors(ZooKeeper zk, Iterable<Op> ops,
-            List<Integer> expectedResultCodes, String expectedErr)
+                                   List<Integer> expectedResultCodes, String expectedErr)
             throws KeeperException, InterruptedException {
         if (useAsync) {
             final MultiResult res = new MultiResult();
             zk.multi(ops, new MultiCallback() {
                 @Override
                 public void processResult(int rc, String path, Object ctx,
-                        List<OpResult> opResults) {
+                                          List<OpResult> opResults) {
                     synchronized (res) {
                         res.rc = rc;
                         res.results = opResults;
@@ -164,7 +150,7 @@ public class MultiTransactionTest extends ClientBase {
     }
 
     private List<OpResult> commit(Transaction txn)
-    throws KeeperException, InterruptedException {
+            throws KeeperException, InterruptedException {
         if (useAsync) {
             final MultiResult res = new MultiResult();
             txn.commit(new MultiCallback() {
@@ -272,7 +258,7 @@ public class MultiTransactionTest extends ClientBase {
         zk.exists("/foo/bar", new Watcher() {
             @Override
             public void process(WatchedEvent event) {
-                if (event.getType() == Event.EventType.NodeDeleted){
+                if (event.getType() == Event.EventType.NodeDeleted) {
                     latch.countDown();
                 }
             }
@@ -349,14 +335,14 @@ public class MultiTransactionTest extends ClientBase {
         Op createChild = Op.create("/myid", new byte[0],
                 Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         multi(zk_chroot, Arrays.asList(createChild));
-        
+
         Assert.assertNotNull("zNode is not created under chroot:" + chRoot, zk
                 .exists(chRoot + "/myid", false));
         Assert.assertNotNull("zNode is not created under chroot:" + chRoot,
                 zk_chroot.exists("/myid", false));
         Assert.assertNull("zNode is created directly under '/', ignored configured chroot",
                 zk.exists("/myid", false));
-        
+
         // Deleting child using chRoot client.
         Op deleteChild = Op.delete("/myid", 0);
         multi(zk_chroot, Arrays.asList(deleteChild));
@@ -381,7 +367,7 @@ public class MultiTransactionTest extends ClientBase {
             ops.add(Op.setData(names[i], names[i].getBytes(), 0));
         }
 
-        multi(zk_chroot, ops) ;
+        multi(zk_chroot, ops);
 
         for (int i = 0; i < names.length; i++) {
             Assert.assertArrayEquals("zNode data not matching", names[i]
@@ -405,7 +391,7 @@ public class MultiTransactionTest extends ClientBase {
         for (int i = 0; i < names.length; i++) {
             ops.add(Op.check(names[i], 0));
         }
-        multi(zk_chroot, ops) ;
+        multi(zk_chroot, ops);
     }
 
     @Test
@@ -427,7 +413,7 @@ public class MultiTransactionTest extends ClientBase {
         Assert.assertNotNull("zNode is not created under chroot:" + chRoot,
                 zk_chroot.exists(childPath, false));
         Assert.assertNull("zNode is created directly under '/', ignored configured chroot",
-                        zk.exists(childPath, false));
+                zk.exists(childPath, false));
         Assert.assertArrayEquals("zNode data not matching", childPath
                 .getBytes(), zk_chroot.getData(childPath, false, null));
 
@@ -452,14 +438,13 @@ public class MultiTransactionTest extends ClientBase {
         return chRoot;
     }
 
-
     @Test
     public void testCreate() throws Exception {
         multi(zk, Arrays.asList(
                 Op.create("/multi0", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
                 Op.create("/multi1", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
                 Op.create("/multi2", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
-                ));
+        ));
         zk.getData("/multi0", false, null);
         zk.getData("/multi1", false, null);
         zk.getData("/multi2", false, null);
@@ -471,7 +456,7 @@ public class MultiTransactionTest extends ClientBase {
         multi(zk, Arrays.asList(
                 Op.create("/multi", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
                 Op.delete("/multi", 0)
-                ));
+        ));
 
         // '/multi' should have been deleted
         Assert.assertNull(zk.exists("/multi", null));
@@ -504,7 +489,7 @@ public class MultiTransactionTest extends ClientBase {
                 Op.delete("/multi/a/1", 0),
                 Op.delete("/multi/a", 0),
                 Op.delete("/multi", 0)
-                ));
+        ));
 
         //Verify tree deleted
         Assert.assertNull(zk.exists("/multi/a/1", null));
@@ -523,7 +508,7 @@ public class MultiTransactionTest extends ClientBase {
             ops.add(Op.setData(names[i], names[i].getBytes(), 0));
         }
 
-        multi(zk, ops) ;
+        multi(zk, ops);
 
         for (int i = 0; i < names.length; i++) {
             Assert.assertArrayEquals(names[i].getBytes(), zk.getData(names[i], false, null));
@@ -540,7 +525,7 @@ public class MultiTransactionTest extends ClientBase {
                     Op.create("/multi", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
                     Op.setData("/multi", "X".getBytes(), 0),
                     Op.setData("/multi", "Y".getBytes(), 0)
-                    ));
+            ));
             Assert.fail("Should have thrown a KeeperException for invalid version");
         } catch (KeeperException e) {
             //PASS
@@ -554,7 +539,7 @@ public class MultiTransactionTest extends ClientBase {
                 Op.create("/multi", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
                 Op.setData("/multi", "X".getBytes(), 0),
                 Op.setData("/multi", "Y".getBytes(), 1)
-                ));
+        ));
 
         Assert.assertArrayEquals(zk.getData("/multi", false, null), "Y".getBytes());
     }
@@ -565,17 +550,17 @@ public class MultiTransactionTest extends ClientBase {
         /* Delete of a node folowed by an update of the (now) deleted node */
         try {
             multi(zk, Arrays.asList(
-                Op.create("/multi", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
-                Op.delete("/multi", 0),
-                Op.setData("/multi", "Y".getBytes(), 0)
-                ));
+                    Op.create("/multi", new byte[0], Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT),
+                    Op.delete("/multi", 0),
+                    Op.setData("/multi", "Y".getBytes(), 0)
+            ));
             Assert.fail("/multi should have been deleted so setData should have failed");
         } catch (KeeperException e) {
             /* PASS */
         }
 
         // '/multi' should never have been created as entire op should fail
-        Assert.assertNull(zk.exists("/multi", null)) ;
+        Assert.assertNull(zk.exists("/multi", null));
     }
 
     @Test
@@ -608,7 +593,7 @@ public class MultiTransactionTest extends ClientBase {
                 }
             }
             Assert.assertFalse("/multi should have been deleted so setData should have failed",
-                               KeeperException.Code.OK.intValue() == res.rc);
+                    KeeperException.Code.OK.intValue() == res.rc);
             Assert.assertNull(zk.exists("/multi", null));
             results = res.results;
         } else {
@@ -638,40 +623,40 @@ public class MultiTransactionTest extends ClientBase {
     @Test
     public void testOpResultEquals() {
         opEquals(new CreateResult("/foo"),
-                 new CreateResult("/foo"),
-                 new CreateResult("nope"));
+                new CreateResult("/foo"),
+                new CreateResult("nope"));
 
         opEquals(new CreateResult("/foo"),
-                 new CreateResult("/foo"),
-                 new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)));
+                new CreateResult("/foo"),
+                new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)));
 
         opEquals(new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
-                 new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
-                 new CreateResult("nope", new Stat(11, 12, 13, 14, 15, 16, 17, 18, 19, 110, 111)));
+                new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
+                new CreateResult("nope", new Stat(11, 12, 13, 14, 15, 16, 17, 18, 19, 110, 111)));
 
         opEquals(new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
-                 new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
-                 new CreateResult("/foo"));
+                new CreateResult("/foo", new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
+                new CreateResult("/foo"));
 
         opEquals(new CheckResult(),
-                 new CheckResult(),
-                 null);
+                new CheckResult(),
+                null);
 
         opEquals(new SetDataResult(new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
-                 new SetDataResult(new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
-                 new SetDataResult(new Stat(11, 12, 13, 14, 15, 16, 17, 18, 19, 110, 111)));
-        
-        opEquals(new ErrorResult(1),
-                 new ErrorResult(1),
-                 new ErrorResult(2));
-        
-        opEquals(new DeleteResult(),
-                 new DeleteResult(),
-                 null);
+                new SetDataResult(new Stat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
+                new SetDataResult(new Stat(11, 12, 13, 14, 15, 16, 17, 18, 19, 110, 111)));
 
         opEquals(new ErrorResult(1),
-                 new ErrorResult(1),
-                 new ErrorResult(2));
+                new ErrorResult(1),
+                new ErrorResult(2));
+
+        opEquals(new DeleteResult(),
+                new DeleteResult(),
+                null);
+
+        opEquals(new ErrorResult(1),
+                new ErrorResult(1),
+                new ErrorResult(2));
     }
 
     private void opEquals(OpResult expected, OpResult value, OpResult near) {
@@ -714,7 +699,7 @@ public class MultiTransactionTest extends ClientBase {
         cb.done.await(CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
         assertEquals(1, watcher.triggered.getCount());
     }
-    
+
     @Test
     public void testTransactionBuilder() throws Exception {
         List<OpResult> results = commit(zk.transaction()
@@ -723,24 +708,24 @@ public class MultiTransactionTest extends ClientBase {
                 .create("/t2", null, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
         assertEquals(3, results.size());
         for (OpResult r : results) {
-            CreateResult c = (CreateResult)r;
+            CreateResult c = (CreateResult) r;
             assertTrue(c.getPath().startsWith("/t"));
             assertNotNull(c.toString());
         }
         assertNotNull(zk.exists("/t1", false));
         assertNotNull(zk.exists("/t1/child", false));
         assertNotNull(zk.exists("/t2", false));
-        
+
         results = commit(zk.transaction()
                 .check("/t1", 0)
                 .check("/t1/child", 0)
                 .check("/t2", 0));
         assertEquals(3, results.size());
         for (OpResult r : results) {
-            CheckResult c = (CheckResult)r;
+            CheckResult c = (CheckResult) r;
             assertNotNull(c.toString());
         }
-        
+
         try {
             results = commit(zk.transaction()
                     .check("/t1", 0)
@@ -750,7 +735,7 @@ public class MultiTransactionTest extends ClientBase {
         } catch (KeeperException.BadVersionException e) {
             // expected
         }
-        
+
         results = commit(zk.transaction()
                 .check("/t1", 0)
                 .setData("/t1", new byte[0], 0));
@@ -767,7 +752,7 @@ public class MultiTransactionTest extends ClientBase {
         } catch (KeeperException.BadVersionException e) {
             // expected
         }
-        
+
         results = commit(zk.transaction()
                 .check("/t1", 1)
                 .check("/t1/child", 0)
@@ -779,12 +764,18 @@ public class MultiTransactionTest extends ClientBase {
                 .delete("/t1/child", -1));
         assertEquals(2, results.size());
         for (OpResult r : results) {
-            DeleteResult d = (DeleteResult)r;
+            DeleteResult d = (DeleteResult) r;
             assertNotNull(d.toString());
         }
         assertNotNull(zk.exists("/t1", false));
         assertNull(zk.exists("/t1/child", false));
         assertNull(zk.exists("/t2", false));
+    }
+
+    static class MultiResult {
+        int rc;
+        List<OpResult> results;
+        boolean finished = false;
     }
 
     private static class HasTriggeredWatcher implements Watcher {
@@ -795,6 +786,7 @@ public class MultiTransactionTest extends ClientBase {
             triggered.countDown();
         }
     }
+
     private static class SyncCallback implements AsyncCallback.VoidCallback {
         private final CountDownLatch done = new CountDownLatch(1);
 

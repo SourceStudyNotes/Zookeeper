@@ -1,19 +1,12 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.inspector.manager;
 
@@ -24,8 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.swing.JComboBox;
-import javax.swing.JTextField;
+import javax.swing.*;
 
 /**
  * A Manager for all interactions between the application and the Zookeeper
@@ -56,7 +48,7 @@ public interface ZooInspectorManager extends ZooInspectorNodeManager,
      *         <li>a {@link Map} of property keys to the label to show on the UI
      *         </li>
      *         <ul>
-     * 
+     *
      */
     public Pair<Map<String, List<String>>, Map<String, String>> getConnectionPropertiesTemplate();
 
@@ -67,7 +59,7 @@ public interface ZooInspectorManager extends ZooInspectorNodeManager,
      *            - the node listener for this watcher
      */
     public void addWatchers(Collection<String> selectedNodes,
-            NodeListener nodeListener);
+                            NodeListener nodeListener);
 
     /**
      * @param selectedNodes
@@ -96,7 +88,15 @@ public interface ZooInspectorManager extends ZooInspectorNodeManager,
      *             - if the configuration file cannot be saved
      */
     public void saveNodeViewersFile(File selectedFile,
-            List<String> nodeViewersClassNames) throws IOException;
+                                    List<String> nodeViewersClassNames) throws IOException;
+
+    /**
+     * @return nodeViewers - the class names of the node viewers from the
+     *         configuration
+     * @throws IOException
+     *             - if the default configuration file cannot be loaded
+     */
+    List<String> getDefaultNodeViewerConfiguration() throws IOException;
 
     /**
      * @param nodeViewersClassNames
@@ -108,12 +108,10 @@ public interface ZooInspectorManager extends ZooInspectorNodeManager,
             List<String> nodeViewersClassNames) throws IOException;
 
     /**
-     * @return nodeViewers - the class names of the node viewers from the
-     *         configuration
-     * @throws IOException
-     *             - if the default configuration file cannot be loaded
+     * @return last connection Properties - the connection properties last used
+     *         to connect to the zookeeeper instance
      */
-    List<String> getDefaultNodeViewerConfiguration() throws IOException;
+    public Properties getLastConnectionProps();
 
     /**
      * @param connectionProps
@@ -121,12 +119,6 @@ public interface ZooInspectorManager extends ZooInspectorNodeManager,
      *            zookeeeper instance
      */
     public void setLastConnectionProps(Properties connectionProps);
-
-    /**
-     * @return last connection Properties - the connection properties last used
-     *         to connect to the zookeeeper instance
-     */
-    public Properties getLastConnectionProps();
 
     /**
      * @param props

@@ -1,22 +1,23 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.persistence;
+
+import org.apache.jute.BinaryOutputArchive;
+import org.apache.jute.InputArchive;
+import org.apache.jute.OutputArchive;
+import org.apache.jute.Record;
+import org.apache.zookeeper.txn.TxnHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
@@ -34,53 +35,46 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.jute.BinaryOutputArchive;
-import org.apache.jute.InputArchive;
-import org.apache.jute.OutputArchive;
-import org.apache.jute.Record;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.txn.TxnHeader;
-
 /**
  * A collection of utility methods for dealing with file name parsing, 
  * low level I/O file operations and marshalling/unmarshalling.
  */
 public class Util {
     private static final Logger LOG = LoggerFactory.getLogger(Util.class);
-    private static final String SNAP_DIR="snapDir";
-    private static final String LOG_DIR="logDir";
-    private static final String DB_FORMAT_CONV="dbFormatConversion";
+    private static final String SNAP_DIR = "snapDir";
+    private static final String LOG_DIR = "logDir";
+    private static final String DB_FORMAT_CONV = "dbFormatConversion";
     private static final ByteBuffer fill = ByteBuffer.allocateDirect(1);
-    
-    public static String makeURIString(String dataDir, String dataLogDir, 
-            String convPolicy){
-        String uri="file:"+SNAP_DIR+"="+dataDir+";"+LOG_DIR+"="+dataLogDir;
-        if(convPolicy!=null)
-            uri+=";"+DB_FORMAT_CONV+"="+convPolicy;
+
+    public static String makeURIString(String dataDir, String dataLogDir,
+                                       String convPolicy) {
+        String uri = "file:" + SNAP_DIR + "=" + dataDir + ";" + LOG_DIR + "=" + dataLogDir;
+        if (convPolicy != null)
+            uri += ";" + DB_FORMAT_CONV + "=" + convPolicy;
         return uri.replace('\\', '/');
     }
+
     /**
      * Given two directory files the method returns a well-formed 
      * logfile provider URI. This method is for backward compatibility with the
      * existing code that only supports logfile persistence and expects these two
      * parameters passed either on the command-line or in the configuration file.
-     * 
+     *
      * @param dataDir snapshot directory
      * @param dataLogDir transaction log directory
      * @return logfile provider URI
      */
-    public static URI makeFileLoggerURL(File dataDir, File dataLogDir){
-        return URI.create(makeURIString(dataDir.getPath(),dataLogDir.getPath(),null));
+    public static URI makeFileLoggerURL(File dataDir, File dataLogDir) {
+        return URI.create(makeURIString(dataDir.getPath(), dataLogDir.getPath(), null));
     }
-    
-    public static URI makeFileLoggerURL(File dataDir, File dataLogDir,String convPolicy){
-        return URI.create(makeURIString(dataDir.getPath(),dataLogDir.getPath(),convPolicy));
+
+    public static URI makeFileLoggerURL(File dataDir, File dataLogDir, String convPolicy) {
+        return URI.create(makeURIString(dataDir.getPath(), dataLogDir.getPath(), convPolicy));
     }
 
     /**
      * Creates a valid transaction log file name. 
-     * 
+     *
      * @param zxid used as a file name suffix (extention)
      * @return file name
      */
@@ -90,48 +84,48 @@ public class Util {
 
     /**
      * Creates a snapshot file name.
-     * 
+     *
      * @param zxid used as a suffix
      * @return file name
      */
     public static String makeSnapshotName(long zxid) {
         return "snapshot." + Long.toHexString(zxid);
     }
-    
+
     /**
      * Extracts snapshot directory property value from the container.
-     * 
+     *
      * @param props properties container
      * @return file representing the snapshot directory
      */
-    public static File getSnapDir(Properties props){
+    public static File getSnapDir(Properties props) {
         return new File(props.getProperty(SNAP_DIR));
     }
 
     /**
      * Extracts transaction log directory property value from the container.
-     * 
+     *
      * @param props properties container
      * @return file representing the txn log directory
      */
-    public static File getLogDir(Properties props){
+    public static File getLogDir(Properties props) {
         return new File(props.getProperty(LOG_DIR));
     }
-    
+
     /**
      * Extracts the value of the dbFormatConversion attribute.
-     * 
+     *
      * @param props properties container
      * @return value of the dbFormatConversion attribute
      */
-    public static String getFormatConversionPolicy(Properties props){
+    public static String getFormatConversionPolicy(Properties props) {
         return props.getProperty(DB_FORMAT_CONV);
     }
-   
+
     /**
      * Extracts zxid from the file name. The file name should have been created
      * using one of the {@link makeLogName} or {@link makeSnapshotName}.
-     * 
+     *
      * @param name the file name to parse
      * @param prefix the file name prefix (snapshot or log)
      * @return zxid
@@ -153,13 +147,13 @@ public class Util {
      * it's incomplete as in a situation when the server dies while in the process
      * of storing a snapshot. Any file that is not a snapshot is also 
      * an invalid snapshot. 
-     * 
+     *
      * @param f file to verify
      * @return true if the snapshot is valid
      * @throws IOException
      */
     public static boolean isValidSnapshot(File f) throws IOException {
-        if (f==null || Util.getZxidFromName(f.getName(), "snapshot") == -1)
+        if (f == null || Util.getZxidFromName(f.getName(), "snapshot") == -1)
             return false;
 
         // Check for a valid snapshot
@@ -174,8 +168,8 @@ public class Util {
             byte bytes[] = new byte[5];
             int readlen = 0;
             int l;
-            while(readlen < 5 &&
-                  (l = raf.read(bytes, readlen, bytes.length - readlen)) >= 0) {
+            while (readlen < 5 &&
+                    (l = raf.read(bytes, readlen, bytes.length - readlen)) >= 0) {
                 readlen += l;
             }
             if (readlen != bytes.length) {
@@ -202,7 +196,7 @@ public class Util {
      * Grows the file to the specified number of bytes. This only happenes if 
      * the current file position is sufficiently close (less than 4K) to end of 
      * file. 
-     * 
+     *
      * @param f output stream to pad
      * @param currentSize application keeps track of the cuurent file size
      * @param preAllocSize how many bytes to pad
@@ -210,13 +204,13 @@ public class Util {
      * padding was done.
      * @throws IOException
      */
-    public static long padLogFile(FileOutputStream f,long currentSize,
-            long preAllocSize) throws IOException{
+    public static long padLogFile(FileOutputStream f, long currentSize,
+                                  long preAllocSize) throws IOException {
         long position = f.getChannel().position();
         if (position + 4096 >= currentSize) {
             currentSize = currentSize + preAllocSize;
             fill.position(0);
-            f.getChannel().write(fill, currentSize-fill.remaining());
+            f.getChannel().write(fill, currentSize - fill.remaining());
         }
         return currentSize;
     }
@@ -229,7 +223,7 @@ public class Util {
      * @throws IOException
      */
     public static byte[] readTxnBytes(InputArchive ia) throws IOException {
-        try{
+        try {
             byte[] bytes = ia.readBuffer("txtEntry");
             // Since we preallocate, we define EOF to be an
             // empty transaction
@@ -240,14 +234,15 @@ public class Util {
                 return null;
             }
             return bytes;
-        }catch(EOFException e){}
+        } catch (EOFException e) {
+        }
         return null;
     }
-    
+
 
     /**
      * Serializes transaction header and transaction data into a byte buffer.
-     *  
+     *
      * @param hdr transaction header
      * @param txn transaction data
      * @return serialized transaction record
@@ -267,7 +262,7 @@ public class Util {
 
     /**
      * Write the serialized transaction record to the output archive.
-     *  
+     *
      * @param oa output archive
      * @param bytes serialized trasnaction record
      * @throws IOException
@@ -277,19 +272,37 @@ public class Util {
         oa.writeBuffer(bytes, "txnEntry");
         oa.writeByte((byte) 0x42, "EOR"); // 'B'
     }
-    
-    
+
+    /**
+     * Sort the list of files. Recency as determined by the version component
+     * of the file name.
+     *
+     * @param files array of files
+     * @param prefix files not matching this prefix are assumed to have a
+     * version = -1)
+     * @param ascending true sorted in ascending order, false results in
+     * descending order
+     * @return sorted input files
+     */
+    public static List<File> sortDataDir(File[] files, String prefix, boolean ascending) {
+        if (files == null)
+            return new ArrayList<File>(0);
+        List<File> filelist = Arrays.asList(files);
+        Collections.sort(filelist, new DataDirFileComparator(prefix, ascending));
+        return filelist;
+    }
+
     /**
      * Compare file file names of form "prefix.version". Sort order result
      * returned in order of version.
      */
     private static class DataDirFileComparator
-        implements Comparator<File>, Serializable
-    {
+            implements Comparator<File>, Serializable {
         private static final long serialVersionUID = -2648639884525140318L;
 
         private String prefix;
         private boolean ascending;
+
         public DataDirFileComparator(String prefix, boolean ascending) {
             this.prefix = prefix;
             this.ascending = ascending;
@@ -302,25 +315,5 @@ public class Util {
             return ascending ? result : -result;
         }
     }
-    
-    /**
-     * Sort the list of files. Recency as determined by the version component
-     * of the file name.
-     *
-     * @param files array of files
-     * @param prefix files not matching this prefix are assumed to have a
-     * version = -1)
-     * @param ascending true sorted in ascending order, false results in
-     * descending order
-     * @return sorted input files
-     */
-    public static List<File> sortDataDir(File[] files, String prefix, boolean ascending)
-    {
-        if(files==null)
-            return new ArrayList<File>(0);
-        List<File> filelist = Arrays.asList(files);
-        Collections.sort(filelist, new DataDirFileComparator(prefix, ascending));
-        return filelist;
-    }
-    
+
 }

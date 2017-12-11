@@ -1,40 +1,33 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test;
 
-import java.io.IOException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.test.ClientBase.CountdownWatcher;
-import org.apache.zookeeper.ZKTestCase;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 
 public class WatchEventWhenAutoResetTest extends ZKTestCase {
@@ -43,33 +36,6 @@ public class WatchEventWhenAutoResetTest extends ZKTestCase {
 
     // waiting time for expected condition
     private static final int TIMEOUT = 30000;
-
-    static public class EventsWatcher extends CountdownWatcher {
-        private LinkedBlockingQueue<WatchedEvent> dataEvents = new LinkedBlockingQueue<WatchedEvent>();
-
-        @Override
-        public void process(WatchedEvent event) {
-            super.process(event);
-            try {
-                if (event.getType() != Event.EventType.None) {
-                    dataEvents.put(event);
-                }
-            } catch (InterruptedException e) {
-                LOG.warn("ignoring interrupt during EventsWatcher process");
-            }
-        }
-
-        public void assertEvent(long timeout, EventType eventType) {
-            try {
-                WatchedEvent event = dataEvents.poll(timeout,
-                        TimeUnit.MILLISECONDS);
-                Assert.assertNotNull("do not receive a " + eventType, event);
-                Assert.assertEquals(eventType, event.getType());
-            } catch (InterruptedException e) {
-                LOG.warn("ignoring interrupt during EventsWatcher assertEvent");
-            }
-        }
-    }
 
     private ZooKeeper createClient(QuorumUtil qu, int id, EventsWatcher watcher)
             throws IOException {
@@ -213,6 +179,33 @@ public class WatchEventWhenAutoResetTest extends ZKTestCase {
         watcher.assertEvent(TIMEOUT, EventType.NodeChildrenChanged);
 
         qu.shutdownAll();
+    }
+
+    static public class EventsWatcher extends CountdownWatcher {
+        private LinkedBlockingQueue<WatchedEvent> dataEvents = new LinkedBlockingQueue<WatchedEvent>();
+
+        @Override
+        public void process(WatchedEvent event) {
+            super.process(event);
+            try {
+                if (event.getType() != Event.EventType.None) {
+                    dataEvents.put(event);
+                }
+            } catch (InterruptedException e) {
+                LOG.warn("ignoring interrupt during EventsWatcher process");
+            }
+        }
+
+        public void assertEvent(long timeout, EventType eventType) {
+            try {
+                WatchedEvent event = dataEvents.poll(timeout,
+                        TimeUnit.MILLISECONDS);
+                Assert.assertNotNull("do not receive a " + eventType, event);
+                Assert.assertEquals(eventType, event.getType());
+            } catch (InterruptedException e) {
+                LOG.warn("ignoring interrupt during EventsWatcher assertEvent");
+            }
+        }
     }
 }
 

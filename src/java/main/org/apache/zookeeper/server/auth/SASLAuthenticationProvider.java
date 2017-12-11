@@ -1,19 +1,12 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.auth;
@@ -28,8 +21,7 @@ public class SASLAuthenticationProvider implements AuthenticationProvider {
     }
 
     public KeeperException.Code
-        handleAuthentication(ServerCnxn cnxn, byte[] authData)
-    {
+    handleAuthentication(ServerCnxn cnxn, byte[] authData) {
         // Should never call this: SASL authentication is negotiated at session initiation.
         // TODO: consider substituting current implementation of direct ClientCnxn manipulation with
         // a call to this method (SASLAuthenticationProvider:handleAuthentication()) at session initiation.
@@ -37,18 +29,18 @@ public class SASLAuthenticationProvider implements AuthenticationProvider {
 
     }
 
-    public boolean matches(String id,String aclExpr) {
+    public boolean matches(String id, String aclExpr) {
         if (System.getProperty("zookeeper.superUser") != null) {
             if (id.equals(System.getProperty("zookeeper.superUser")) || id.equals(aclExpr)) {
-              return true;
+                return true;
             }
         }
         if ((id.equals("super") || id.equals(aclExpr))) {
-          return true;
+            return true;
         }
         String readAccessUser = System.getProperty("zookeeper.letAnySaslUserDoX");
-        if ( readAccessUser != null && aclExpr.equals(readAccessUser)) {
-          return true;
+        if (readAccessUser != null && aclExpr.equals(readAccessUser)) {
+            return true;
         }
         return false;
     }
@@ -69,11 +61,10 @@ public class SASLAuthenticationProvider implements AuthenticationProvider {
         try {
             new KerberosName(id);
             return true;
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             return false;
         }
-   }
+    }
 
 
 }

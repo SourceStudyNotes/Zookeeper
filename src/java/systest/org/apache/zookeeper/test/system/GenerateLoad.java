@@ -1,22 +1,30 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test.system;
+
+import org.apache.zookeeper.AsyncCallback.DataCallback;
+import org.apache.zookeeper.AsyncCallback.StatCallback;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooDefs.Ids;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.common.Time;
+import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -40,38 +48,21 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.AsyncCallback.DataCallback;
-import org.apache.zookeeper.AsyncCallback.StatCallback;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.EventType;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.ZooDefs.Ids;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.common.Time;
-
 
 public class GenerateLoad {
     protected static final Logger LOG = LoggerFactory.getLogger(GenerateLoad.class);
-
+    static final int INTERVAL = 6000;
     static ServerSocket ss;
-
     static Set<SlaveThread> slaves = Collections
             .synchronizedSet(new HashSet<SlaveThread>());
-
     static Map<Long, Long> totalByTime = new HashMap<Long, Long>();
-
     volatile static long currentInterval;
-
     static long lastChange;
-    
     static PrintStream sf;
     static PrintStream tf;
+    private static boolean leaderOnly;
+    private static boolean leaderServes;
+
     static {
         try {
             tf = new PrintStream(new FileOutputStream("trace"));
@@ -79,8 +70,6 @@ public class GenerateLoad {
             e.printStackTrace();
         }
     }
-
-    static final int INTERVAL = 6000;
 
     synchronized static void add(long time, int count, Socket s) {
         long interval = time / INTERVAL;
@@ -102,6 +91,181 @@ public class GenerateLoad {
     synchronized static long remove(long interval) {
         Long total = totalByTime.remove(interval);
         return total == null ? -1 : total;
+    }
+
+    synchronized static void sendChange(int percentage) {
+        long now = Time.currentElapsedTime();
+        long start = now;
+        ReporterThread.percentage = percentage;
+        for (SlaveThread st : slaves.toArray(new SlaveThread[0])) {
+            st.send(percentage);
+        }
+        now = Time.currentElapsedTime();
+        long delay = now - start;
+        if (delay > 1000) {
+            System.out.println("Delay of " + delay + " to send new percentage");
+        }
+        lastChange = now;
+    }
+
+    private static String[] processOptions(String args[]) {
+        ArrayList<String> newArgs = new ArrayList<String>();
+        for (String a : args) {
+            if (a.equals("--leaderOnly")) {
+                leaderOnly = true;
+                leaderServes = true;
+            } else if (a.equals("--leaderServes")) {
+                leaderServes = true;
+            } else {
+                newArgs.add(a);
+            }
+        }
+        return newArgs.toArray(new String[0]);
+    }
+
+    /**
+     * @param args
+     * @throws InterruptedException
+     * @throws KeeperException
+     * @throws DuplicateNameException
+     * @throws NoAvailableContainers
+     * @throws NoAssignmentException
+     */
+    public static void main(String[] args) throws InterruptedException,
+            KeeperException, NoAvailableContainers, DuplicateNameException,
+            NoAssignmentException {
+
+        args = processOptions(args);
+        if (args.length == 5) {
+            try {
+                StatusWatcher statusWatcher = new StatusWatcher();
+                ZooKeeper zk = new ZooKeeper(args[0], 15000, statusWatcher);
+                if (!statusWatcher.waitConnected(5000)) {
+                    System.err.println("Could not connect to " + args[0]);
+                    return;
+                }
+                InstanceManager im = new InstanceManager(zk, args[1]);
+                ss = new ServerSocket(0);
+                int port = ss.getLocalPort();
+                int serverCount = Integer.parseInt(args[2]);
+                int clientCount = Integer.parseInt(args[3]);
+                StringBuilder quorumHostPort = new StringBuilder();
+                StringBuilder zkHostPort = new StringBuilder();
+                for (int i = 0; i < serverCount; i++) {
+                    String r[] = QuorumPeerInstance.createServer(im, i, leaderServes);
+                    if (i > 0) {
+                        quorumHostPort.append(',');
+                        zkHostPort.append(',');
+                    }
+                    zkHostPort.append(r[0]);     // r[0] == "host:clientPort"
+                    quorumHostPort.append(r[1]); // r[1] == "host:leaderPort:leaderElectionPort"
+                    quorumHostPort.append(";" + (r[0].split(":"))[1]); // Appending ";clientPort"
+                }
+                for (int i = 0; i < serverCount; i++) {
+                    QuorumPeerInstance.startInstance(im, quorumHostPort
+                            .toString(), i);
+                }
+                if (leaderOnly) {
+                    int tries = 0;
+                    outer:
+                    while (true) {
+                        Thread.sleep(1000);
+                        IOException lastException = null;
+                        String parts[] = zkHostPort.toString().split(",");
+                        for (int i = 0; i < parts.length; i++) {
+                            try {
+                                String mode = getMode(parts[i]);
+                                if (mode.equals("leader")) {
+                                    zkHostPort = new StringBuilder(parts[i]);
+                                    System.out.println("Connecting exclusively to " + zkHostPort.toString());
+                                    break outer;
+                                }
+                            } catch (IOException e) {
+                                lastException = e;
+                            }
+                        }
+                        if (tries++ > 3) {
+                            throw lastException;
+                        }
+                    }
+                }
+                for (int i = 0; i < clientCount; i++) {
+                    im.assignInstance("client" + i, GeneratorInstance.class,
+                            zkHostPort.toString()
+                                    + ' '
+                                    + InetAddress.getLocalHost()
+                                    .getCanonicalHostName() + ':'
+                                    + port, 1);
+                }
+                new AcceptorThread();
+                new ReporterThread();
+                BufferedReader is = new BufferedReader(new InputStreamReader(
+                        System.in));
+                String line;
+                while ((line = is.readLine()) != null) {
+                    try {
+                        String cmdNumber[] = line.split(" ");
+                        if (cmdNumber[0].equals("percentage")
+                                && cmdNumber.length > 1) {
+                            int number = Integer.parseInt(cmdNumber[1]);
+                            if (number < 0 || number > 100) {
+                                throw new NumberFormatException(
+                                        "must be between 0 and 100");
+                            }
+                            sendChange(number);
+                        } else if (cmdNumber[0].equals("sleep")
+                                && cmdNumber.length > 1) {
+                            int number = Integer.parseInt(cmdNumber[1]);
+                            Thread.sleep(number * 1000);
+                        } else if (cmdNumber[0].equals("save")
+                                && cmdNumber.length > 1) {
+                            sf = new PrintStream(cmdNumber[1]);
+                        } else {
+                            System.err.println("Commands must be:");
+                            System.err
+                                    .println("\tpercentage new_write_percentage");
+                            System.err.println("\tsleep seconds_to_sleep");
+                            System.err.println("\tsave file_to_save_output");
+                        }
+                    } catch (NumberFormatException e) {
+                        System.out.println("Not a valid number: "
+                                + e.getMessage());
+                    }
+                }
+            } catch (NumberFormatException e) {
+                doUsage();
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(2);
+            }
+        } else {
+            doUsage();
+        }
+
+    }
+
+    private static String getMode(String hostPort) throws NumberFormatException, UnknownHostException, IOException {
+        String parts[] = hostPort.split(":");
+        Socket s = new Socket(parts[0], Integer.parseInt(parts[1]));
+        s.getOutputStream().write("stat".getBytes());
+        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
+        String line;
+        try {
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith("Mode: ")) {
+                    return line.substring(6);
+                }
+            }
+            return "unknown";
+        } finally {
+            s.close();
+        }
+    }
+
+    private static void doUsage() {
+        System.err.println("USAGE: " + GenerateLoad.class.getName()
+                + " [--leaderOnly] [--leaderServes] zookeeper_host:port containerPrefix #ofServers #ofClients requestSize");
+        System.exit(2);
     }
 
     static class SlaveThread extends Thread {
@@ -177,7 +341,7 @@ public class GenerateLoad {
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
-                for (Iterator<SlaveThread> it = slaves.iterator(); it.hasNext();) {
+                for (Iterator<SlaveThread> it = slaves.iterator(); it.hasNext(); ) {
                     SlaveThread st = it.next();
                     it.remove();
                     st.close();
@@ -209,7 +373,7 @@ public class GenerateLoad {
                     currentInterval += 1;
                     long count = remove(lastInterval);
                     count = count * 1000 / INTERVAL; // Multiply by 1000 to get
-                                                     // reqs/sec
+                    // reqs/sec
                     if (lastChange != 0
                             && (lastChange + INTERVAL * 3) < now) {
                         // We only want to print anything if things have had a
@@ -250,31 +414,12 @@ public class GenerateLoad {
         }
     }
 
-    synchronized static void sendChange(int percentage) {
-        long now = Time.currentElapsedTime();
-        long start = now;
-        ReporterThread.percentage = percentage;
-        for (SlaveThread st : slaves.toArray(new SlaveThread[0])) {
-            st.send(percentage);
-        }
-        now = Time.currentElapsedTime();
-        long delay = now - start;
-        if (delay > 1000) {
-            System.out.println("Delay of " + delay + " to send new percentage");
-        }
-        lastChange = now;
-    }
-
     static public class GeneratorInstance implements Instance {
 
-        byte bytes[];
-        
-        int percentage = -1;
-
-        int errors;
-
         final Object statSync = new Object();
-
+        byte bytes[];
+        int percentage = -1;
+        int errors;
         int finished;
 
         int reads;
@@ -286,12 +431,92 @@ public class GenerateLoad {
         int wlatency;
 
         int outstanding;
-        
+
         volatile boolean alive;
+        Socket s;
+        ZooKeeperThread zkThread;
+        SenderThread sendThread;
+        Reporter r;
+
+        public void configure(final String params) {
+            System.err.println("Got " + params);
+            new Thread() {
+                public void run() {
+                    try {
+                        String parts[] = params.split(" ");
+                        String hostPort[] = parts[1].split(":");
+                        int bytesSize = 1024;
+                        if (parts.length == 3) {
+                            try {
+                                bytesSize = Integer.parseInt(parts[2]);
+                            } catch (Exception e) {
+                                System.err.println("Not an integer: " + parts[2]);
+                            }
+                        }
+                        bytes = new byte[bytesSize];
+                        s = new Socket(hostPort[0], Integer.parseInt(hostPort[1]));
+                        zkThread = new ZooKeeperThread(parts[0]);
+                        sendThread = new SenderThread(s);
+                        BufferedReader is = new BufferedReader(new InputStreamReader(s
+                                .getInputStream()));
+                        String line;
+                        while ((line = is.readLine()) != null) {
+                            percentage = Integer.parseInt(line);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }.start();
+
+        }
+
+        public void setReporter(Reporter r) {
+            this.r = r;
+        }
+
+        public void start() {
+            try {
+                r.report("started");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void stop() {
+            alive = false;
+            zkThread.interrupt();
+            sendThread.interrupt();
+            try {
+                zkThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            try {
+                sendThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            try {
+                r.report("stopped");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                s.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         class ZooKeeperThread extends Thread implements Watcher, DataCallback,
                 StatCallback {
+            static final int outstandingLimit = 100;
             String host;
+            Random r = new Random();
+            String path;
+            ZooKeeper zk;
+            boolean connected;
 
             ZooKeeperThread(String host) {
                 setDaemon(true);
@@ -299,8 +524,6 @@ public class GenerateLoad {
                 this.host = host;
                 start();
             }
-
-            static final int outstandingLimit = 100;
 
             synchronized void incOutstanding() throws InterruptedException {
                 outstanding++;
@@ -313,14 +536,6 @@ public class GenerateLoad {
                 outstanding--;
                 notifyAll();
             }
-
-            Random r = new Random();
-
-            String path;
-
-            ZooKeeper zk;
-
-            boolean connected;
 
             public void run() {
                 try {
@@ -378,7 +593,7 @@ public class GenerateLoad {
             }
 
             public void processResult(int rc, String path, Object ctx, byte[] data,
-                    Stat stat) {
+                                      Stat stat) {
                 decOutstanding();
                 synchronized (statSync) {
                     if (!alive) {
@@ -453,82 +668,6 @@ public class GenerateLoad {
             }
         }
 
-        Socket s;
-        ZooKeeperThread zkThread;
-        SenderThread sendThread;
-        Reporter r;
-
-        public void configure(final String params) {
-            System.err.println("Got " + params);
-            new Thread() {
-                public void run() {
-                    try {
-                        String parts[] = params.split(" ");
-                        String hostPort[] = parts[1].split(":");
-                        int bytesSize = 1024;
-                        if (parts.length == 3) {
-                            try {
-                                bytesSize = Integer.parseInt(parts[2]);
-                            } catch(Exception e) {
-                                System.err.println("Not an integer: " + parts[2]);
-                            }
-                        }
-                        bytes = new byte[bytesSize];
-                        s = new Socket(hostPort[0], Integer.parseInt(hostPort[1]));
-                        zkThread = new ZooKeeperThread(parts[0]);
-                        sendThread = new SenderThread(s);
-                        BufferedReader is = new BufferedReader(new InputStreamReader(s
-                                .getInputStream()));
-                        String line;
-                        while ((line = is.readLine()) != null) {
-                            percentage = Integer.parseInt(line);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }.start();
-
-        }
-
-        public void setReporter(Reporter r) {
-            this.r = r;
-        }
-
-        public void start() {
-            try {
-                r.report("started");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        public void stop() {
-            alive = false;
-            zkThread.interrupt();
-            sendThread.interrupt();
-            try {
-                zkThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            try {
-                sendThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            try {
-                r.report("stopped");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            try {
-                s.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
     }
 
     private static class StatusWatcher implements Watcher {
@@ -551,168 +690,5 @@ public class GenerateLoad {
             }
             return connected;
         }
-    }
-
-    private static boolean leaderOnly;
-    private static boolean leaderServes;
-    
-    private static String []processOptions(String args[]) {
-        ArrayList<String> newArgs = new ArrayList<String>();
-        for(String a: args) {
-            if (a.equals("--leaderOnly")) {
-                leaderOnly = true;
-                leaderServes = true;
-            } else if (a.equals("--leaderServes")) {
-                leaderServes = true;
-            } else {
-                newArgs.add(a);
-            }
-        }
-        return newArgs.toArray(new String[0]);
-    }
-    
-    /**
-     * @param args
-     * @throws InterruptedException
-     * @throws KeeperException
-     * @throws DuplicateNameException
-     * @throws NoAvailableContainers
-     * @throws NoAssignmentException
-     */
-    public static void main(String[] args) throws InterruptedException,
-            KeeperException, NoAvailableContainers, DuplicateNameException,
-            NoAssignmentException {
-
-        args = processOptions(args);
-        if (args.length == 5) {
-            try {
-                StatusWatcher statusWatcher = new StatusWatcher();
-                ZooKeeper zk = new ZooKeeper(args[0], 15000, statusWatcher);
-                if (!statusWatcher.waitConnected(5000)) {
-                    System.err.println("Could not connect to " + args[0]);
-                    return;
-                }
-                InstanceManager im = new InstanceManager(zk, args[1]);
-                ss = new ServerSocket(0);
-                int port = ss.getLocalPort();
-                int serverCount = Integer.parseInt(args[2]);
-                int clientCount = Integer.parseInt(args[3]);
-                StringBuilder quorumHostPort = new StringBuilder();
-                StringBuilder zkHostPort = new StringBuilder();
-                for (int i = 0; i < serverCount; i++) {
-                    String r[] = QuorumPeerInstance.createServer(im, i, leaderServes);
-                    if (i > 0) {
-                        quorumHostPort.append(',');
-                        zkHostPort.append(',');
-                    }
-                    zkHostPort.append(r[0]);     // r[0] == "host:clientPort"
-                    quorumHostPort.append(r[1]); // r[1] == "host:leaderPort:leaderElectionPort"
-                    quorumHostPort.append(";"+(r[0].split(":"))[1]); // Appending ";clientPort"
-                }
-                for (int i = 0; i < serverCount; i++) {
-                    QuorumPeerInstance.startInstance(im, quorumHostPort
-                            .toString(), i);
-                }
-                if (leaderOnly) {
-                    int tries = 0;
-                    outer:
-                        while(true) {
-                            Thread.sleep(1000);
-                            IOException lastException = null;
-                            String parts[] = zkHostPort.toString().split(",");
-                            for(int i = 0; i < parts.length; i++) {
-                                try {
-                                    String mode = getMode(parts[i]);
-                                    if (mode.equals("leader")) {
-                                        zkHostPort = new StringBuilder(parts[i]);
-                                        System.out.println("Connecting exclusively to " + zkHostPort.toString());
-                                        break outer;
-                                    }
-                                } catch(IOException e) {
-                                    lastException = e;
-                                }
-                            }
-                            if (tries++ > 3) {
-                                throw lastException;
-                            }
-                        }
-                }
-                for (int i = 0; i < clientCount; i++) {
-                    im.assignInstance("client" + i, GeneratorInstance.class,
-                            zkHostPort.toString()
-                                    + ' '
-                                    + InetAddress.getLocalHost()
-                                            .getCanonicalHostName() + ':'
-                                    + port, 1);
-                }
-                new AcceptorThread();
-                new ReporterThread();
-                BufferedReader is = new BufferedReader(new InputStreamReader(
-                        System.in));
-                String line;
-                while ((line = is.readLine()) != null) {
-                    try {
-                        String cmdNumber[] = line.split(" ");
-                        if (cmdNumber[0].equals("percentage")
-                                && cmdNumber.length > 1) {
-                            int number = Integer.parseInt(cmdNumber[1]);
-                            if (number < 0 || number > 100) {
-                                throw new NumberFormatException(
-                                        "must be between 0 and 100");
-                            }
-                            sendChange(number);
-                        } else if (cmdNumber[0].equals("sleep")
-                                && cmdNumber.length > 1) {
-                            int number = Integer.parseInt(cmdNumber[1]);
-                            Thread.sleep(number * 1000);
-                        } else if (cmdNumber[0].equals("save")
-                                && cmdNumber.length > 1) {
-                            sf = new PrintStream(cmdNumber[1]);
-                        } else {
-                            System.err.println("Commands must be:");
-                            System.err
-                                    .println("\tpercentage new_write_percentage");
-                            System.err.println("\tsleep seconds_to_sleep");
-                            System.err.println("\tsave file_to_save_output");
-                        }
-                    } catch (NumberFormatException e) {
-                        System.out.println("Not a valid number: "
-                                + e.getMessage());
-                    }
-                }
-            } catch (NumberFormatException e) {
-                doUsage();
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(2);
-            }
-        } else {
-            doUsage();
-        }
-
-    }
-
-    private static String getMode(String hostPort) throws NumberFormatException, UnknownHostException, IOException {
-        String parts[] = hostPort.split(":");
-        Socket s = new Socket(parts[0], Integer.parseInt(parts[1]));
-        s.getOutputStream().write("stat".getBytes());
-        BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()));
-        String line;
-        try {
-          while((line = br.readLine()) != null) {
-            if (line.startsWith("Mode: ")) {
-              return line.substring(6);
-            }
-          }
-          return "unknown";
-        } finally {
-          s.close();
-        }
-    }
-
-    private static void doUsage() {
-        System.err.println("USAGE: " + GenerateLoad.class.getName()
-                + " [--leaderOnly] [--leaderServes] zookeeper_host:port containerPrefix #ofServers #ofClients requestSize");
-        System.exit(2);
     }
 }

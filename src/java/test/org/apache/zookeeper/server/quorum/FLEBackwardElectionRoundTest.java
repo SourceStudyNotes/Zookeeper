@@ -17,19 +17,10 @@
 
 package org.apache.zookeeper.server.quorum;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.server.quorum.QuorumCnxManager;
 import org.apache.zookeeper.server.quorum.QuorumPeer;
-import org.apache.zookeeper.server.quorum.Vote;
 import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
 import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
 import org.apache.zookeeper.test.ClientBase;
@@ -37,12 +28,19 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 
 public class FLEBackwardElectionRoundTest extends ZKTestCase {
     protected static final Logger LOG = LoggerFactory.getLogger(FLELostMessageTest.class);
 
     int count;
-    HashMap<Long,QuorumServer> peers;
+    HashMap<Long, QuorumServer> peers;
     File tmpdir[];
     int port[];
 
@@ -52,7 +50,7 @@ public class FLEBackwardElectionRoundTest extends ZKTestCase {
     public void setUp() throws Exception {
         count = 3;
 
-        peers = new HashMap<Long,QuorumServer>(count);
+        peers = new HashMap<Long, QuorumServer>(count);
         tmpdir = new File[count];
         port = new int[count];
         cnxManagers = new QuorumCnxManager[count - 1];
@@ -60,36 +58,25 @@ public class FLEBackwardElectionRoundTest extends ZKTestCase {
 
     @After
     public void tearDown() throws Exception {
-        for(int i = 0; i < (count - 1); i++){
-            if(cnxManagers[i] != null){
+        for (int i = 0; i < (count - 1); i++) {
+            if (cnxManagers[i] != null) {
                 cnxManagers[i].halt();
             }
         }
     }
 
     /**
-     * This test is checking the following case. A server S is
-     * currently LOOKING and it receives notifications from
-     * a quorum indicating they are following S. The election
-     * round E of S is higher than the election round E' in the
-     * notification messages, so S becomes the leader and sets
-     * its epoch back to E'. In the meanwhile, one or more
-     * followers turn to LOOKING and elect S in election round E.
-     * Having leader and followers with different election rounds
-     * might prevent other servers from electing a leader because
-     * they can't get a consistent set of notifications from a
-     * quorum.
+     * This test is checking the following case. A server S is currently LOOKING and it receives notifications from a quorum indicating they are following S. The election round E of S is higher than
+     * the election round E' in the notification messages, so S becomes the leader and sets its epoch back to E'. In the meanwhile, one or more followers turn to LOOKING and elect S in election round
+     * E. Having leader and followers with different election rounds might prevent other servers from electing a leader because they can't get a consistent set of notifications from a quorum.
      *
      * {@link https://issues.apache.org/jira/browse/ZOOKEEPER-1514}
-     *
-     *
-     * @throws Exception
      */
 
     @Test
     public void testBackwardElectionRound() throws Exception {
         LOG.info("TestLE: {}, {}", getTestName(), count);
-        for(int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++) {
             int clientport = PortAssignment.unique();
             peers.put(Long.valueOf(i),
                     new QuorumServer(i,

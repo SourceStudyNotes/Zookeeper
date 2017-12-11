@@ -1,22 +1,23 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.admin;
+
+import org.apache.zookeeper.server.ZooKeeperServer;
+import org.mortbay.jetty.Server;
+import org.mortbay.jetty.nio.SelectChannelConnector;
+import org.mortbay.jetty.servlet.Context;
+import org.mortbay.jetty.servlet.ServletHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,14 +30,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.zookeeper.server.ZooKeeperServer;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.nio.SelectChannelConnector;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.jetty.servlet.ServletHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class encapsulates a Jetty server for running Commands.
@@ -52,17 +45,15 @@ import org.slf4j.LoggerFactory;
  * @see CommandOutputter
  */
 public class JettyAdminServer implements AdminServer {
-    static final Logger LOG = LoggerFactory.getLogger(JettyAdminServer.class);
-
     public static final int DEFAULT_PORT = 8080;
-    private static final String DEFAULT_ADDRESS = "0.0.0.0";
     public static final String DEFAULT_COMMAND_URL = "/commands";
-
+    static final Logger LOG = LoggerFactory.getLogger(JettyAdminServer.class);
+    private static final String DEFAULT_ADDRESS = "0.0.0.0";
     private final Server server;
-    private ZooKeeperServer zkServer;
     private final int port;
-    private String address;
     private final String commandUrl;
+    private ZooKeeperServer zkServer;
+    private String address;
 
     public JettyAdminServer() throws AdminServerException {
         this(System.getProperty("zookeeper.admin.serverAddress",
@@ -139,6 +130,20 @@ public class JettyAdminServer implements AdminServer {
         this.zkServer = zkServer;
     }
 
+    /**
+     * Returns a list of URLs to each registered Command.
+     */
+    private List<String> commandLinks() {
+        List<String> links = new ArrayList<String>();
+        List<String> commands = new ArrayList<String>(Commands.getPrimaryNames());
+        Collections.sort(commands);
+        for (String command : commands) {
+            String url = commandUrl + "/" + command;
+            links.add(String.format("<a href=\"%s\">%s</a>", url, command));
+        }
+        return links;
+    }
+
     private class CommandServlet extends HttpServlet {
         private static final long serialVersionUID = 1L;
 
@@ -173,19 +178,5 @@ public class JettyAdminServer implements AdminServer {
             response.setContentType(outputter.getContentType());
             outputter.output(cmdResponse, response.getWriter());
         }
-    }
-
-    /**
-     * Returns a list of URLs to each registered Command.
-     */
-    private List<String> commandLinks() {
-        List<String> links = new ArrayList<String>();
-        List<String> commands = new ArrayList<String>(Commands.getPrimaryNames());
-        Collections.sort(commands);
-        for (String command : commands) {
-            String url = commandUrl + "/" + command;
-            links.add(String.format("<a href=\"%s\">%s</a>", url, command));
-        }
-        return links;
     }
 }

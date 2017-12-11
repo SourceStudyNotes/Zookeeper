@@ -1,19 +1,12 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.jersey.jaxb;
@@ -24,7 +17,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * Represents a STAT using JAXB.
  */
-@XmlRootElement(name="stat")
+@XmlRootElement(name = "stat")
 public class ZStat {
     public String path;
     public String uri;
@@ -44,22 +37,20 @@ public class ZStat {
     public long pzxid;
 
 
-    public ZStat(){
+    public ZStat() {
         // needed by jersey
     }
 
-    public ZStat(String path, byte[] data64, String dataUtf8)
-    {
+    public ZStat(String path, byte[] data64, String dataUtf8) {
         this.path = path;
         this.data64 = data64;
         this.dataUtf8 = dataUtf8;
     }
 
     public ZStat(String path, String uri, byte[] data64, String dataUtf8,
-            long czxid, long mzxid, long ctime, long mtime, int version,
-            int cversion, int aversion, long ephemeralOwner, int dataLength,
-            int numChildren, long pzxid)
-    {
+                 long czxid, long mzxid, long ctime, long mtime, int version,
+                 int cversion, int aversion, long ephemeralOwner, int dataLength,
+                 int numChildren, long pzxid) {
         this.path = path;
         this.uri = uri;
         this.data64 = data64;
@@ -100,7 +91,7 @@ public class ZStat {
     @Override
     public String toString() {
         return "ZStat(" + path + "," + "b64["
-            + (data64 == null ? null : new String(data64)) + "],"
-            + dataUtf8 + ")";
+                + (data64 == null ? null : new String(data64)) + "],"
+                + dataUtf8 + ")";
     }
 }

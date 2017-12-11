@@ -1,19 +1,12 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.version.util;
@@ -34,8 +27,7 @@ public class VerGen {
         System.exit(1);
     }
 
-    public static void generateFile(File outputDir, Version version, int rev, String buildDate)
-    {
+    public static void generateFile(File outputDir, Version version, int rev, String buildDate) {
         String path = PACKAGE_NAME.replaceAll("\\.", "/");
         File pkgdir = new File(outputDir, path);
         if (!pkgdir.exists()) {
@@ -81,7 +73,7 @@ public class VerGen {
             w.write("    public static final int MICRO=" + version.micro + ";\n");
             w.write("    public static final String QUALIFIER="
                     + (version.qualifier == null ? null :
-                        "\"" + version.qualifier + "\"")
+                    "\"" + version.qualifier + "\"")
                     + ";\n");
             if (rev < 0) {
                 System.out.println("Unknown REVISION number, using " + rev);
@@ -104,13 +96,6 @@ public class VerGen {
                 }
             }
         }
-    }
-
-    public static class Version {
-        public int maj;
-        public int min;
-        public int micro;
-        public String qualifier;
     }
 
     public static Version parseVersionString(String input) {
@@ -172,6 +157,13 @@ public class VerGen {
                     "All version-related parameters must be valid integers!");
             throw e;
         }
+    }
+
+    public static class Version {
+        public int maj;
+        public int min;
+        public int micro;
+        public String qualifier;
     }
 
 }

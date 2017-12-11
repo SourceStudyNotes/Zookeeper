@@ -1,22 +1,25 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.persistence;
+
+import org.apache.jute.BinaryInputArchive;
+import org.apache.jute.BinaryOutputArchive;
+import org.apache.jute.InputArchive;
+import org.apache.jute.OutputArchive;
+import org.apache.zookeeper.server.DataTree;
+import org.apache.zookeeper.server.util.SerializeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -33,15 +36,6 @@ import java.util.zip.Adler32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.CheckedOutputStream;
 
-import org.apache.jute.BinaryInputArchive;
-import org.apache.jute.BinaryOutputArchive;
-import org.apache.jute.InputArchive;
-import org.apache.jute.OutputArchive;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.zookeeper.server.DataTree;
-import org.apache.zookeeper.server.util.SerializeUtils;
-
 /**
  * This class implements the snapshot interface.
  * it is responsible for storing, serializing
@@ -49,13 +43,14 @@ import org.apache.zookeeper.server.util.SerializeUtils;
  * and provides access to the snapshots.
  */
 public class FileSnap implements SnapShot {
+    public final static int SNAP_MAGIC
+            = ByteBuffer.wrap("ZKSN".getBytes()).getInt();
+    private static final int VERSION = 2;
+    private static final long dbId = -1;
+    private static final Logger LOG = LoggerFactory.getLogger(FileSnap.class);
     File snapDir;
     private volatile boolean close = false;
-    private static final int VERSION=2;
-    private static final long dbId=-1;
-    private static final Logger LOG = LoggerFactory.getLogger(FileSnap.class);
-    public final static int SNAP_MAGIC
-        = ByteBuffer.wrap("ZKSN".getBytes()).getInt();
+
     public FileSnap(File snapDir) {
         this.snapDir = snapDir;
     }
@@ -63,7 +58,7 @@ public class FileSnap implements SnapShot {
     /**
      * deserialize a data tree from the most recent snapshot
      * @return the zxid of the snapshot
-     */ 
+     */
     public long deserialize(DataTree dt, Map<Long, Integer> sessions)
             throws IOException {
         // we run through 100 snapshots (not all of them)
@@ -84,7 +79,7 @@ public class FileSnap implements SnapShot {
                 snapIS = new BufferedInputStream(new FileInputStream(snap));
                 crcIn = new CheckedInputStream(snapIS, new Adler32());
                 InputArchive ia = BinaryInputArchive.getArchive(crcIn);
-                deserialize(dt,sessions, ia);
+                deserialize(dt, sessions, ia);
                 long checkSum = crcIn.getChecksum().getValue();
                 long val = ia.readLong("val");
                 if (val != checkSum) {
@@ -92,14 +87,14 @@ public class FileSnap implements SnapShot {
                 }
                 foundValid = true;
                 break;
-            } catch(IOException e) {
+            } catch (IOException e) {
                 LOG.warn("problem reading snap file " + snap, e);
             } finally {
-                if (snapIS != null) 
+                if (snapIS != null)
                     snapIS.close();
-                if (crcIn != null) 
+                if (crcIn != null)
                     crcIn.close();
-            } 
+            }
         }
         if (!foundValid) {
             throw new IOException("Not able to find valid snapshots in " + snapDir);
@@ -116,15 +111,15 @@ public class FileSnap implements SnapShot {
      * @throws IOException
      */
     public void deserialize(DataTree dt, Map<Long, Integer> sessions,
-            InputArchive ia) throws IOException {
+                            InputArchive ia) throws IOException {
         FileHeader header = new FileHeader();
         header.deserialize(ia, "fileheader");
         if (header.getMagic() != SNAP_MAGIC) {
             throw new IOException("mismatching magic headers "
-                    + header.getMagic() + 
+                    + header.getMagic() +
                     " !=  " + FileSnap.SNAP_MAGIC);
         }
-        SerializeUtils.deserializeSnapshot(dt,ia,sessions);
+        SerializeUtils.deserializeSnapshot(dt, ia, sessions);
     }
 
     /**
@@ -138,7 +133,7 @@ public class FileSnap implements SnapShot {
         }
         return files.get(0);
     }
-    
+
     /**
      * find the last (maybe) valid n snapshots. this does some 
      * minor checks on the validity of the snapshots. It just
@@ -152,7 +147,7 @@ public class FileSnap implements SnapShot {
      * @throws IOException
      */
     private List<File> findNValidSnapshots(int n) throws IOException {
-        List<File> files = Util.sortDataDir(snapDir.listFiles(),"snapshot", false);
+        List<File> files = Util.sortDataDir(snapDir.listFiles(), "snapshot", false);
         int count = 0;
         List<File> list = new ArrayList<File>();
         for (File f : files) {
@@ -185,8 +180,8 @@ public class FileSnap implements SnapShot {
         List<File> files = Util.sortDataDir(snapDir.listFiles(), "snapshot", false);
         int i = 0;
         List<File> list = new ArrayList<File>();
-        for (File f: files) {
-            if (i==n)
+        for (File f : files) {
+            if (i == n)
                 break;
             i++;
             list.add(f);
@@ -202,15 +197,15 @@ public class FileSnap implements SnapShot {
      * @param header the header of this snapshot
      * @throws IOException
      */
-    protected void serialize(DataTree dt,Map<Long, Integer> sessions,
-            OutputArchive oa, FileHeader header) throws IOException {
+    protected void serialize(DataTree dt, Map<Long, Integer> sessions,
+                             OutputArchive oa, FileHeader header) throws IOException {
         // this is really a programmatic error and not something that can
         // happen at runtime
-        if(header==null)
+        if (header == null)
             throw new IllegalStateException(
                     "Snapshot's not open for writing: uninitialized header");
         header.serialize(oa, "fileheader");
-        SerializeUtils.serializeSnapshot(dt,oa,sessions);
+        SerializeUtils.serializeSnapshot(dt, oa, sessions);
     }
 
     /**
@@ -227,7 +222,7 @@ public class FileSnap implements SnapShot {
             //CheckedOutputStream cout = new CheckedOutputStream()
             OutputArchive oa = BinaryOutputArchive.getArchive(crcOut);
             FileHeader header = new FileHeader(SNAP_MAGIC, VERSION, dbId);
-            serialize(dt,sessions,oa, header);
+            serialize(dt, sessions, oa, header);
             long val = crcOut.getChecksum().getValue();
             oa.writeLong(val, "val");
             oa.writeString("/", "path");
@@ -247,4 +242,4 @@ public class FileSnap implements SnapShot {
         close = true;
     }
 
- }
+}

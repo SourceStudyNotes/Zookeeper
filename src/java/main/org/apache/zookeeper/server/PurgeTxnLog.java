@@ -1,22 +1,18 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server;
+
+import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
+import org.apache.zookeeper.server.persistence.Util;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -25,9 +21,6 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
-import org.apache.zookeeper.server.persistence.Util;
 
 /**
  * this class is used to clean up the 
@@ -40,18 +33,17 @@ import org.apache.zookeeper.server.persistence.Util;
 public class PurgeTxnLog {
 
     private static final String COUNT_ERR_MSG = "count should be greater than or equal to 3";
+    private static final String PREFIX_SNAPSHOT = "snapshot";
+    private static final String PREFIX_LOG = "log";
 
-    static void printUsage(){
+    static void printUsage() {
         System.out.println("Usage:");
         System.out.println("PurgeTxnLog dataLogDir [snapDir] -n count");
         System.out.println("\tdataLogDir -- path to the txn log directory");
         System.out.println("\tsnapDir -- path to the snapshot directory");
         System.out.println("\tcount -- the number of old snaps/logs you want " +
-            "to keep, value should be greater than or equal to 3");
+                "to keep, value should be greater than or equal to 3");
     }
-
-    private static final String PREFIX_SNAPSHOT = "snapshot";
-    private static final String PREFIX_LOG = "log";
 
     /**
      * Purges the snapshot and logs keeping the last num snapshots and the
@@ -80,17 +72,19 @@ public class PurgeTxnLog {
         // found any valid recent snapshots?
         if (snaps.size() == 0)
             return;
-        File snapShot = snaps.get(snaps.size() -1);
+        File snapShot = snaps.get(snaps.size() - 1);
         final long leastZxidToBeRetain = Util.getZxidFromName(
                 snapShot.getName(), PREFIX_SNAPSHOT);
 
-        class MyFileFilter implements FileFilter{
+        class MyFileFilter implements FileFilter {
             private final String prefix;
-            MyFileFilter(String prefix){
-                this.prefix=prefix;
+
+            MyFileFilter(String prefix) {
+                this.prefix = prefix;
             }
-            public boolean accept(File f){
-                if(!f.getName().startsWith(prefix + "."))
+
+            public boolean accept(File f) {
+                if (!f.getName().startsWith(prefix + "."))
                     return false;
                 long fZxid = Util.getZxidFromName(f.getName(), prefix);
                 if (fZxid >= leastZxidToBeRetain) {
@@ -106,18 +100,17 @@ public class PurgeTxnLog {
         files.addAll(Arrays.asList(txnLog.getSnapDir().listFiles(
                 new MyFileFilter(PREFIX_SNAPSHOT))));
         // remove the old files
-        for(File f: files)
-        {
-            System.out.println("Removing file: "+
-                DateFormat.getDateTimeInstance().format(f.lastModified())+
-                "\t"+f.getPath());
-            if(!f.delete()){
-                System.err.println("Failed to remove "+f.getPath());
+        for (File f : files) {
+            System.out.println("Removing file: " +
+                    DateFormat.getDateTimeInstance().format(f.lastModified()) +
+                    "\t" + f.getPath());
+            if (!f.delete()) {
+                System.err.println("Failed to remove " + f.getPath());
             }
         }
 
     }
-    
+
     /**
      * @param args dataLogDir [snapDir] -n count
      * dataLogDir -- path to the txn log directory

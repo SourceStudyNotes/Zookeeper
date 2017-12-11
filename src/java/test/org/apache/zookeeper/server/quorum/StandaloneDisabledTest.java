@@ -1,48 +1,41 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server.quorum;
 
-import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
-
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.PortAssignment;
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.test.ClientBase;
 import org.apache.zookeeper.test.ReconfigTest;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.zookeeper.test.ClientBase.CONNECTION_TIMEOUT;
+
 public class StandaloneDisabledTest extends QuorumPeerTestBase {
 
     private final int NUM_SERVERS = 5;
-    private MainThread peers[];
-    private ZooKeeper zkHandles[];
-    private int clientPorts[];
     private final int leaderId = 0;
     private final int follower1 = 1;
     private final int follower2 = 2;
     private final int observer1 = 3;
     private final int observer2 = 4;
+    private MainThread peers[];
+    private ZooKeeper zkHandles[];
+    private int clientPorts[];
     private ArrayList<String> serverStrings;
     private ArrayList<String> reconfigServers;
 
@@ -58,13 +51,13 @@ public class StandaloneDisabledTest extends QuorumPeerTestBase {
         startServer(leaderId, serverStrings.get(leaderId) + "\n");
         ReconfigTest.testServerHasConfig(zkHandles[leaderId], null, null);
         LOG.info("Initial Configuration:\n"
-                 + new String(zkHandles[leaderId].getConfig(this, new Stat())));
+                + new String(zkHandles[leaderId].getConfig(this, new Stat())));
 
         //start and add 2 followers
         startFollowers();
         testReconfig(leaderId, true, reconfigServers);
         LOG.info("Configuration after adding 2 followers:\n"
-                 + new String(zkHandles[leaderId].getConfig(this, new Stat())));
+                + new String(zkHandles[leaderId].getConfig(this, new Stat())));
 
         //shutdown leader- quorum should still exist
         shutDownServer(leaderId);
@@ -77,7 +70,8 @@ public class StandaloneDisabledTest extends QuorumPeerTestBase {
         try {
             ReconfigTest.reconfig(zkHandles[follower1], null, reconfigServers, null, -1);
             Assert.fail("reconfig completed successfully even though there is no quorum up in new config!");
-        } catch (KeeperException.NewConfigNoQuorum e) { }
+        } catch (KeeperException.NewConfigNoQuorum e) {
+        }
 
         //reconfigure out leader and follower 1. Remaining follower
         //2 should elect itself as leader and run by itself
@@ -144,11 +138,11 @@ public class StandaloneDisabledTest extends QuorumPeerTestBase {
     private ArrayList<String> buildServerStrings() {
         ArrayList<String> serverStrings = new ArrayList<String>();
 
-        for(int i = 0; i < NUM_SERVERS; i++) {
+        for (int i = 0; i < NUM_SERVERS; i++) {
             clientPorts[i] = PortAssignment.unique();
             String server = "server." + i + "=localhost:" + PortAssignment.unique()
-                +":"+PortAssignment.unique() + ":participant;"
-                + "localhost:" + clientPorts[i];
+                    + ":" + PortAssignment.unique() + ":participant;"
+                    + "localhost:" + clientPorts[i];
             serverStrings.add(server);
         }
         return serverStrings;
@@ -162,12 +156,12 @@ public class StandaloneDisabledTest extends QuorumPeerTestBase {
     private void startServer(int id, String config) throws Exception {
         peers[id] = new MainThread(id, clientPorts[id], config);
         zkHandles[id] = new ZooKeeper("127.0.0.1:" + clientPorts[id],
-                                                CONNECTION_TIMEOUT, this);
+                CONNECTION_TIMEOUT, this);
         peers[id].start();
         Assert.assertTrue("Server " + id + " is not up",
-                          ClientBase.waitForServerUp("127.0.0.1:" + clientPorts[id], CONNECTION_TIMEOUT));
+                ClientBase.waitForServerUp("127.0.0.1:" + clientPorts[id], CONNECTION_TIMEOUT));
         Assert.assertTrue("Error- Server started in Standalone Mode!",
-                          peers[id].isQuorumPeerRunning());
+                peers[id].isQuorumPeerRunning());
     }
 
     /**
@@ -188,15 +182,16 @@ public class StandaloneDisabledTest extends QuorumPeerTestBase {
      */
     private void startFollowers() throws Exception {
         reconfigServers.clear();
-        for(int i = 1; i <= 2; i++) {
+        for (int i = 1; i <= 2; i++) {
             String config = serverStrings.get(leaderId) + "\n"
-                + serverStrings.get(i)  + "\n"
-                + serverStrings.get(i % 2 + 1) + "\n";
+                    + serverStrings.get(i) + "\n"
+                    + serverStrings.get(i % 2 + 1) + "\n";
             startServer(i, config);
             reconfigServers.add(serverStrings.get(i));
         }
     }
-     /**
+
+    /**
      * Starts servers 1 & 2 as participants,
      * adds them to the list to be reconfigured
      * into the ensemble, and adds an observer
@@ -205,9 +200,9 @@ public class StandaloneDisabledTest extends QuorumPeerTestBase {
      */
     private void startObservers(ArrayList<String> observerStrings) throws Exception {
         reconfigServers.clear();
-        for(int i = observer1; i <= observer2; i++) {
+        for (int i = observer1; i <= observer2; i++) {
             String config = serverStrings.get(follower2) + "\n"
-                + serverStrings.get(i) + "\n";
+                    + serverStrings.get(i) + "\n";
             startServer(i, config);
             reconfigServers.add(serverStrings.get(i));
             observerStrings.add(serverStrings.get(i).replace("participant", "observer"));
@@ -235,18 +230,18 @@ public class StandaloneDisabledTest extends QuorumPeerTestBase {
 
     }
 
-   /**
-    * Ensure observer cannot start by itself
-    **/
+    /**
+     * Ensure observer cannot start by itself
+     **/
     @Test
     public void startObserver() throws Exception {
         int clientPort = PortAssignment.unique();
-        String config = "server." + observer1 + "=localhost:"+ PortAssignment.unique()
-            + ":" + clientPort +  ":observer;"
-            + "localhost:" + PortAssignment.unique();
+        String config = "server." + observer1 + "=localhost:" + PortAssignment.unique()
+                + ":" + clientPort + ":observer;"
+                + "localhost:" + PortAssignment.unique();
         MainThread observer = new MainThread(observer1, clientPort, config);
         observer.start();
         Assert.assertFalse("Observer was able to start by itself!",
-                           ClientBase.waitForServerUp("127.0.0.1:" + clientPort, CONNECTION_TIMEOUT));
+                ClientBase.waitForServerUp("127.0.0.1:" + clientPort, CONNECTION_TIMEOUT));
     }
 }

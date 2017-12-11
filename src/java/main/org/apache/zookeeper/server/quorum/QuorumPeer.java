@@ -77,309 +77,214 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The request for the current leader will consist solely of an xid: int xid;
  */
 public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider {
-    private static final Logger LOG = LoggerFactory.getLogger(QuorumPeer.class);
-
-    private QuorumBean jmxQuorumBean;
-    LocalPeerBean jmxLocalPeerBean;
-    private Map<Long, RemotePeerBean> jmxRemotePeerBean;
-    LeaderElectionBean jmxLeaderElectionBean;
-    private QuorumCnxManager qcm;
-
     /**
-     * ZKDatabase is a top level member of quorumpeer which will be used in all the zookeeperservers instantiated later. Also, it is created once on bootup and only thrown away in case of a truncate
-     * message from the leader
+     * The syncEnabled can also be set via a system property.
      */
-    private ZKDatabase zkDb;
-
-    public static class QuorumServer {
-        public InetSocketAddress addr = null;
-
-        public InetSocketAddress electionAddr = null;
-
-        public InetSocketAddress clientAddr = null;
-
-        public long id;
-
-        public LearnerType type = LearnerType.PARTICIPANT;
-
-        private List<InetSocketAddress> myAddrs;
-
-        public QuorumServer(long id, InetSocketAddress addr,
-                            InetSocketAddress electionAddr, InetSocketAddress clientAddr) {
-            this(id, addr, electionAddr, clientAddr, LearnerType.PARTICIPANT);
-        }
-
-        public QuorumServer(long id, InetSocketAddress addr,
-                            InetSocketAddress electionAddr) {
-            this(id, addr, electionAddr, (InetSocketAddress) null, LearnerType.PARTICIPANT);
-        }
-
-        public QuorumServer(long id, InetSocketAddress addr) {
-            this(id, addr, (InetSocketAddress) null, (InetSocketAddress) null, LearnerType.PARTICIPANT);
-        }
-
-        /**
-         * Performs a DNS lookup for server address and election address.
-         *
-         * If the DNS lookup fails, this.addr and electionAddr remain unmodified.
-         */
-        public void recreateSocketAddresses() {
-            if (this.addr == null) {
-                LOG.warn("Server address has not been initialized");
-                return;
-            }
-            if (this.electionAddr == null) {
-                LOG.warn("Election address has not been initialized");
-                return;
-            }
-            String host = this.addr.getHostString();
-            InetAddress address = null;
-            try {
-                address = InetAddress.getByName(host);
-            } catch (UnknownHostException ex) {
-                LOG.warn("Failed to resolve address: {}", host, ex);
-                return;
-            }
-            LOG.debug("Resolved address for {}: {}", host, address);
-            int port = this.addr.getPort();
-            this.addr = new InetSocketAddress(address, port);
-            port = this.electionAddr.getPort();
-            this.electionAddr = new InetSocketAddress(address, port);
-        }
-
-        private void setType(String s) throws ConfigException {
-            if (s.toLowerCase().equals("observer")) {
-                type = LearnerType.OBSERVER;
-            } else if (s.toLowerCase().equals("participant")) {
-                type = LearnerType.PARTICIPANT;
-            } else {
-                throw new ConfigException("Unrecognised peertype: " + s);
-            }
-        }
-
-        private static String[] splitWithLeadingHostname(String s)
-                throws ConfigException {
-            /* Does it start with an IPv6 literal? */
-            if (s.startsWith("[")) {
-                int i = s.indexOf("]:");
-                if (i < 0) {
-                    throw new ConfigException(s + " starts with '[' but has no matching ']:'");
-                }
-
-                String[] sa = s.substring(i + 2).split(":");
-                String[] nsa = new String[sa.length + 1];
-                nsa[0] = s.substring(1, i);
-                System.arraycopy(sa, 0, nsa, 1, sa.length);
-
-                return nsa;
-            } else {
-                return s.split(":");
-            }
-        }
-
-        private static final String wrongFormat = " does not have the form server_config or server_config;client_config" +
-                " where server_config is host:port:port or host:port:port:type and client_config is port or host:port";
-
-        public QuorumServer(long sid, String addressStr) throws ConfigException {
-            // LOG.warn("sid = " + sid + " addressStr = " + addressStr);
-            this.id = sid;
-            String serverClientParts[] = addressStr.split(";");
-            String serverParts[] = splitWithLeadingHostname(serverClientParts[0]);
-            if ((serverClientParts.length > 2) || (serverParts.length < 3)
-                    || (serverParts.length > 4)) {
-                throw new ConfigException(addressStr + wrongFormat);
-            }
-
-            if (serverClientParts.length == 2) {
-                //LOG.warn("ClientParts: " + serverClientParts[1]);
-                String clientParts[] = splitWithLeadingHostname(serverClientParts[1]);
-                if (clientParts.length > 2) {
-                    throw new ConfigException(addressStr + wrongFormat);
-                }
-
-                // is client_config a host:port or just a port
-                String hostname = (clientParts.length == 2) ? clientParts[0] : "0.0.0.0";
-                try {
-                    clientAddr = new InetSocketAddress(hostname,
-                            Integer.parseInt(clientParts[clientParts.length - 1]));
-                    //LOG.warn("Set clientAddr to " + clientAddr);
-                } catch (NumberFormatException e) {
-                    throw new ConfigException("Address unresolved: " + hostname + ":" + clientParts[clientParts.length - 1]);
-                }
-            }
-
-            // server_config should be either host:port:port or host:port:port:type
-            try {
-                addr = new InetSocketAddress(serverParts[0],
-                        Integer.parseInt(serverParts[1]));
-            } catch (NumberFormatException e) {
-                throw new ConfigException("Address unresolved: " + serverParts[0] + ":" + serverParts[1]);
-            }
-            try {
-                electionAddr = new InetSocketAddress(serverParts[0],
-                        Integer.parseInt(serverParts[2]));
-            } catch (NumberFormatException e) {
-                throw new ConfigException("Address unresolved: " + serverParts[0] + ":" + serverParts[2]);
-            }
-
-            if (serverParts.length == 4) {
-                setType(serverParts[3]);
-            }
-
-            setMyAddrs();
-        }
-
-        public QuorumServer(long id, InetSocketAddress addr,
-                            InetSocketAddress electionAddr, LearnerType type) {
-            this(id, addr, electionAddr, (InetSocketAddress) null, type);
-        }
-
-        public QuorumServer(long id, InetSocketAddress addr,
-                            InetSocketAddress electionAddr, InetSocketAddress clientAddr, LearnerType type) {
-            this.id = id;
-            this.addr = addr;
-            this.electionAddr = electionAddr;
-            this.type = type;
-            this.clientAddr = clientAddr;
-
-            setMyAddrs();
-        }
-
-        private void setMyAddrs() {
-            this.myAddrs = new ArrayList<InetSocketAddress>();
-            this.myAddrs.add(this.addr);
-            this.myAddrs.add(this.clientAddr);
-            this.myAddrs.add(this.electionAddr);
-            this.myAddrs = excludedSpecialAddresses(this.myAddrs);
-        }
-
-        private static String delimitedHostString(InetSocketAddress addr) {
-            String host = addr.getHostString();
-            if (host.contains(":")) {
-                return "[" + host + "]";
-            } else {
-                return host;
-            }
-        }
-
-        public String toString() {
-            StringWriter sw = new StringWriter();
-            //addr should never be null, but just to make sure
-            if (addr != null) {
-                sw.append(delimitedHostString(addr));
-                sw.append(":");
-                sw.append(String.valueOf(addr.getPort()));
-            }
-            if (electionAddr != null) {
-                sw.append(":");
-                sw.append(String.valueOf(electionAddr.getPort()));
-            }
-            if (type == LearnerType.OBSERVER) sw.append(":observer");
-            else if (type == LearnerType.PARTICIPANT) sw.append(":participant");
-            if (clientAddr != null) {
-                sw.append(";");
-                sw.append(delimitedHostString(clientAddr));
-                sw.append(":");
-                sw.append(String.valueOf(clientAddr.getPort()));
-            }
-            return sw.toString();
-        }
-
-        public int hashCode() {
-            assert false : "hashCode not designed";
-            return 42; // any arbitrary constant will do
-        }
-
-        private boolean checkAddressesEqual(InetSocketAddress addr1, InetSocketAddress addr2) {
-            if ((addr1 == null && addr2 != null) ||
-                    (addr1 != null && addr2 == null) ||
-                    (addr1 != null && addr2 != null && !addr1.equals(addr2))) return false;
-            return true;
-        }
-
-        public boolean equals(Object o) {
-            if (!(o instanceof QuorumServer)) return false;
-            QuorumServer qs = (QuorumServer) o;
-            if ((qs.id != id) || (qs.type != type)) return false;
-            if (!checkAddressesEqual(addr, qs.addr)) return false;
-            if (!checkAddressesEqual(electionAddr, qs.electionAddr)) return false;
-            if (!checkAddressesEqual(clientAddr, qs.clientAddr)) return false;
-            return true;
-        }
-
-        public void checkAddressDuplicate(QuorumServer s) throws BadArgumentsException {
-            List<InetSocketAddress> otherAddrs = new ArrayList<InetSocketAddress>();
-            otherAddrs.add(s.addr);
-            otherAddrs.add(s.clientAddr);
-            otherAddrs.add(s.electionAddr);
-            otherAddrs = excludedSpecialAddresses(otherAddrs);
-
-            for (InetSocketAddress my : this.myAddrs) {
-
-                for (InetSocketAddress other : otherAddrs) {
-                    if (my.equals(other)) {
-                        String error = String.format("%s of server.%d conflicts %s of server.%d", my, this.id, other, s.id);
-                        throw new BadArgumentsException(error);
-                    }
-                }
-            }
-        }
-
-        private List<InetSocketAddress> excludedSpecialAddresses(List<InetSocketAddress> addrs) {
-            List<InetSocketAddress> included = new ArrayList<InetSocketAddress>();
-            InetAddress wcAddr = new InetSocketAddress(0).getAddress();
-
-            for (InetSocketAddress addr : addrs) {
-                if (addr == null) {
-                    continue;
-                }
-                InetAddress inetaddr = addr.getAddress();
-
-                if (inetaddr == null ||
-                        inetaddr.equals(wcAddr) || // wildCard address(0.0.0.0)
-                        inetaddr.isLoopbackAddress()) { // loopback address(localhost/127.0.0.1)
-                    continue;
-                }
-                included.add(addr);
-            }
-            return included;
-        }
-    }
-
-
-    public enum ServerState {
-        LOOKING, FOLLOWING, LEADING, OBSERVING;
-    }
-
+    public static final String SYNC_ENABLED = "zookeeper.observer.syncEnabled";
+    public static final String CURRENT_EPOCH_FILENAME = "currentEpoch";
+    public static final String ACCEPTED_EPOCH_FILENAME = "acceptedEpoch";
+    static final long OBSERVER_ID = Long.MAX_VALUE;
+    private static final Logger LOG = LoggerFactory.getLogger(QuorumPeer.class);
+    private final QuorumStats quorumStats;
     /*
-     * A peer can either be participating, which implies that it is willing to
-     * both vote in instances of consensus and to elect or become a Leader, or
-     * it may be observing in which case it isn't.
-     *
-     * We need this distinction to decide which ServerState to move to when
-     * conditions change (e.g. which state to become after LOOKING).
+     * Record leader election time
      */
-    public enum LearnerType {
-        PARTICIPANT, OBSERVER;
-    }
+    public long start_fle, end_fle;
+    /**
+     * QuorumVerifier implementation; default (majority).
+     */
+
+    //last committed quorum verifier
+    public QuorumVerifier quorumVerifier;
+    //last proposed quorum verifier
+    public QuorumVerifier lastSeenQuorumVerifier = null;
+    public Follower follower;
 
     /*
      * To enable observers to have no identifier, we need a generic identifier
      * at least for QuorumCnxManager. We use the following constant to as the
      * value of such a generic identifier.
      */
-
-    static final long OBSERVER_ID = Long.MAX_VALUE;
-
-    /*
-     * Record leader election time
+    public Leader leader;
+    public Observer observer;
+    /**
+     * The number of milliseconds of each tick
      */
-    public long start_fle, end_fle;
-
+    protected int tickTime;
+    /**
+     * Whether learners in this quorum should create new sessions as local. False by default to preserve existing behavior.
+     */
+    protected boolean localSessionsEnabled = false;
+    /**
+     * Whether learners in this quorum should upgrade local sessions to global. Only matters if local sessions are enabled.
+     */
+    protected boolean localSessionsUpgradingEnabled = true;
+    /**
+     * Minimum number of milliseconds to allow for session timeout. A value of -1 indicates unset, use default.
+     */
+    protected int minSessionTimeout = -1;
+    /**
+     * Maximum number of milliseconds to allow for session timeout. A value of -1 indicates unset, use default.
+     */
+    protected int maxSessionTimeout = -1;
+    /**
+     * The number of ticks that the initial synchronization phase can take
+     */
+    protected int initLimit;
+    /**
+     * The number of ticks that can pass between sending a request and getting an acknowledgment
+     */
+    protected int syncLimit;
+    /**
+     * Enables/Disables sync request processor. This option is enabled by default and is to be used with observers.
+     */
+    protected boolean syncEnabled = true;
+    /**
+     * The current tick
+     */
+    protected AtomicInteger tick = new AtomicInteger();
+    /**
+     * Whether or not to listen on all IPs for the two quorum ports (broadcast and fast leader election).
+     */
+    protected boolean quorumListenOnAllIPs = false;
+    LocalPeerBean jmxLocalPeerBean;
+    LeaderElectionBean jmxLeaderElectionBean;
+    volatile boolean running = true;
+    DatagramSocket udpSocket;
+    Election electionAlg;
+    ServerCnxnFactory cnxnFactory;
+    ServerCnxnFactory secureCnxnFactory;
+    AdminServer adminServer;
+    ResponderThread responder;
+    boolean shuttingDownLE = false;
+    private QuorumBean jmxQuorumBean;
+    private Map<Long, RemotePeerBean> jmxRemotePeerBean;
+    private QuorumCnxManager qcm;
+    /**
+     * ZKDatabase is a top level member of quorumpeer which will be used in all the zookeeperservers instantiated later. Also, it is created once on bootup and only thrown away in case of a truncate
+     * message from the leader
+     */
+    private ZKDatabase zkDb;
     /*
      * Default value of peer is participant
      */
     private LearnerType learnerType = LearnerType.PARTICIPANT;
+    private String configFilename = null;
+    /**
+     * My id
+     */
+    private long myid;
+    /**
+     * This is who I think the leader currently is.
+     */
+    volatile private Vote currentVote;
+    private ServerState state = ServerState.LOOKING;
+    private boolean reconfigFlag = false; // indicates that a reconfig just committed
+    private InetSocketAddress myQuorumAddr;
+    private InetSocketAddress myElectionAddr = null;
+    private InetSocketAddress myClientAddr = null;
+    private int electionType;
+    private FileTxnSnapLog logFactory = null;
+    private long acceptedEpoch = -1;
+    private long currentEpoch = -1;
+
+    public QuorumPeer() {
+        super("QuorumPeer");
+        quorumStats = new QuorumStats(this);
+        jmxRemotePeerBean = new HashMap<Long, RemotePeerBean>();
+        adminServer = AdminServerFactory.createAdminServer();
+    }
+
+    /**
+     * For backward compatibility purposes, we instantiate QuorumMaj by default.
+     */
+
+    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File dataDir,
+                      File dataLogDir, int electionType,
+                      long myid, int tickTime, int initLimit, int syncLimit,
+                      ServerCnxnFactory cnxnFactory) throws IOException {
+        this(quorumPeers, dataDir, dataLogDir, electionType, myid, tickTime,
+                initLimit, syncLimit, false, cnxnFactory,
+                new QuorumMaj(quorumPeers));
+    }
+
+    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File dataDir,
+                      File dataLogDir, int electionType,
+                      long myid, int tickTime, int initLimit, int syncLimit,
+                      boolean quorumListenOnAllIPs,
+                      ServerCnxnFactory cnxnFactory,
+                      QuorumVerifier quorumConfig) throws IOException {
+        this();
+        this.cnxnFactory = cnxnFactory;
+        this.electionType = electionType;
+        this.myid = myid;
+        this.tickTime = tickTime;
+        this.initLimit = initLimit;
+        this.syncLimit = syncLimit;
+        this.quorumListenOnAllIPs = quorumListenOnAllIPs;
+        this.logFactory = new FileTxnSnapLog(dataLogDir, dataDir);
+        this.zkDb = new ZKDatabase(this.logFactory);
+        if (quorumConfig == null) quorumConfig = new QuorumMaj(quorumPeers);
+        setQuorumVerifier(quorumConfig, false);
+        adminServer = AdminServerFactory.createAdminServer();
+    }
+
+    /**
+     * This constructor is only used by the existing unit test code. It defaults to FileLogProvider persistence provider.
+     */
+    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File snapDir,
+                      File logDir, int clientPort, int electionAlg,
+                      long myid, int tickTime, int initLimit, int syncLimit)
+            throws IOException {
+        this(quorumPeers, snapDir, logDir, electionAlg, myid, tickTime, initLimit, syncLimit, false,
+                ServerCnxnFactory.createFactory(getClientAddress(quorumPeers, myid, clientPort), -1),
+                new QuorumMaj(quorumPeers));
+    }
+
+    /**
+     * This constructor is only used by the existing unit test code. It defaults to FileLogProvider persistence provider.
+     */
+    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File snapDir,
+                      File logDir, int clientPort, int electionAlg,
+                      long myid, int tickTime, int initLimit, int syncLimit,
+                      QuorumVerifier quorumConfig)
+            throws IOException {
+        this(quorumPeers, snapDir, logDir, electionAlg,
+                myid, tickTime, initLimit, syncLimit, false,
+                ServerCnxnFactory.createFactory(getClientAddress(quorumPeers, myid, clientPort), -1),
+                quorumConfig);
+    }
+
+    /**
+     * Count the number of nodes in the map that could be followers.
+     *
+     * @return The number of followers in the map
+     */
+    protected static int countParticipants(Map<Long, QuorumServer> peers) {
+        int count = 0;
+        for (QuorumServer q : peers.values()) {
+            if (q.type == LearnerType.PARTICIPANT) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static InetSocketAddress getClientAddress(Map<Long, QuorumServer> quorumPeers, long myid, int clientPort)
+            throws IOException {
+        QuorumServer quorumServer = quorumPeers.get(myid);
+        if (null == quorumServer) {
+            throw new IOException("No QuorumServer correspoding to myid " + myid);
+        }
+        if (null == quorumServer.clientAddr) {
+            return new InetSocketAddress(clientPort);
+        }
+        if (quorumServer.clientAddr.getPort() != clientPort) {
+            throw new IOException("QuorumServer port " + quorumServer.clientAddr.getPort()
+                    + " does not match with given port " + clientPort);
+        }
+        return quorumServer.clientAddr;
+    }
 
     public LearnerType getLearnerType() {
         return learnerType;
@@ -396,27 +301,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         configFilename = s;
     }
 
-    private String configFilename = null;
-
     public int getQuorumSize() {
         return getVotingView().size();
     }
-
-    /**
-     * QuorumVerifier implementation; default (majority).
-     */
-
-    //last committed quorum verifier
-    public QuorumVerifier quorumVerifier;
-
-    //last proposed quorum verifier
-    public QuorumVerifier lastSeenQuorumVerifier = null;
-
-    /**
-     * My id
-     */
-    private long myid;
-
 
     /**
      * get the id of this quorum peer.
@@ -425,154 +312,12 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         return myid;
     }
 
-    /**
-     * This is who I think the leader currently is.
-     */
-    volatile private Vote currentVote;
-
     public synchronized Vote getCurrentVote() {
         return currentVote;
     }
 
     public synchronized void setCurrentVote(Vote v) {
         currentVote = v;
-    }
-
-    volatile boolean running = true;
-
-    /**
-     * The number of milliseconds of each tick
-     */
-    protected int tickTime;
-
-    /**
-     * Whether learners in this quorum should create new sessions as local. False by default to preserve existing behavior.
-     */
-    protected boolean localSessionsEnabled = false;
-
-    /**
-     * Whether learners in this quorum should upgrade local sessions to global. Only matters if local sessions are enabled.
-     */
-    protected boolean localSessionsUpgradingEnabled = true;
-
-    /**
-     * Minimum number of milliseconds to allow for session timeout. A value of -1 indicates unset, use default.
-     */
-    protected int minSessionTimeout = -1;
-
-    /**
-     * Maximum number of milliseconds to allow for session timeout. A value of -1 indicates unset, use default.
-     */
-    protected int maxSessionTimeout = -1;
-
-    /**
-     * The number of ticks that the initial synchronization phase can take
-     */
-    protected int initLimit;
-
-    /**
-     * The number of ticks that can pass between sending a request and getting an acknowledgment
-     */
-    protected int syncLimit;
-
-    /**
-     * Enables/Disables sync request processor. This option is enabled by default and is to be used with observers.
-     */
-    protected boolean syncEnabled = true;
-
-    /**
-     * The current tick
-     */
-    protected AtomicInteger tick = new AtomicInteger();
-
-    /**
-     * Whether or not to listen on all IPs for the two quorum ports (broadcast and fast leader election).
-     */
-    protected boolean quorumListenOnAllIPs = false;
-
-    /**
-     * @deprecated As of release 3.4.0, this class has been deprecated, since it is used with one of the udp-based versions of leader election, which we are also deprecating.
-     *
-     * This class simply responds to requests for the current leader of this node. <p> The request contains just an xid generated by the requestor. <p> The response has the xid, the id of this server,
-     * the id of the leader, and the zxid of the leader.
-     */
-    @Deprecated
-    class ResponderThread extends ZooKeeperThread {
-        ResponderThread() {
-            super("ResponderThread");
-        }
-
-        volatile boolean running = true;
-
-        @Override
-        public void run() {
-            try {
-                byte b[] = new byte[36];
-                ByteBuffer responseBuffer = ByteBuffer.wrap(b);
-                DatagramPacket packet = new DatagramPacket(b, b.length);
-                while (running) {
-                    udpSocket.receive(packet);
-                    if (packet.getLength() != 4) {
-                        LOG.warn("Got more than just an xid! Len = "
-                                + packet.getLength());
-                    } else {
-                        responseBuffer.clear();
-                        responseBuffer.getInt(); // Skip the xid
-                        responseBuffer.putLong(myid);
-                        Vote current = getCurrentVote();
-                        switch (getPeerState()) {
-                            case LOOKING:
-                                responseBuffer.putLong(current.getId());
-                                responseBuffer.putLong(current.getZxid());
-                                break;
-                            case LEADING:
-                                responseBuffer.putLong(myid);
-                                try {
-                                    long proposed;
-                                    synchronized (leader) {
-                                        proposed = leader.lastProposed;
-                                    }
-                                    responseBuffer.putLong(proposed);
-                                } catch (NullPointerException npe) {
-                                    // This can happen in state transitions,
-                                    // just ignore the request
-                                }
-                                break;
-                            case FOLLOWING:
-                                responseBuffer.putLong(current.getId());
-                                try {
-                                    responseBuffer.putLong(follower.getZxid());
-                                } catch (NullPointerException npe) {
-                                    // This can happen in state transitions,
-                                    // just ignore the request
-                                }
-                                break;
-                            case OBSERVING:
-                                // Do nothing, Observers keep themselves to
-                                // themselves.
-                                break;
-                        }
-                        packet.setData(b);
-                        udpSocket.send(packet);
-                    }
-                    packet.setLength(b.length);
-                }
-            } catch (RuntimeException e) {
-                LOG.warn("Unexpected runtime exception in ResponderThread", e);
-            } catch (IOException e) {
-                LOG.warn("Unexpected IO exception in ResponderThread", e);
-            } finally {
-                LOG.warn("QuorumPeer responder thread exited");
-            }
-        }
-    }
-
-    private ServerState state = ServerState.LOOKING;
-
-    private boolean reconfigFlag = false; // indicates that a reconfig just committed
-
-    public synchronized void setPeerState(ServerState newState) {
-        state = newState;
     }
 
     public synchronized void reconfigFlagSet() {
@@ -591,11 +336,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         return state;
     }
 
-    DatagramSocket udpSocket;
-
-    private InetSocketAddress myQuorumAddr;
-    private InetSocketAddress myElectionAddr = null;
-    private InetSocketAddress myClientAddr = null;
+    public synchronized void setPeerState(ServerState newState) {
+        state = newState;
+    }
 
     /**
      * Resolves hostname for a given server ID.
@@ -646,61 +389,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
 
     public void setClientAddress(InetSocketAddress addr) {
         myClientAddr = addr;
-    }
-
-    private int electionType;
-
-    Election electionAlg;
-
-    ServerCnxnFactory cnxnFactory;
-    ServerCnxnFactory secureCnxnFactory;
-
-    private FileTxnSnapLog logFactory = null;
-
-    private final QuorumStats quorumStats;
-
-    AdminServer adminServer;
-
-    public QuorumPeer() {
-        super("QuorumPeer");
-        quorumStats = new QuorumStats(this);
-        jmxRemotePeerBean = new HashMap<Long, RemotePeerBean>();
-        adminServer = AdminServerFactory.createAdminServer();
-    }
-
-
-    /**
-     * For backward compatibility purposes, we instantiate QuorumMaj by default.
-     */
-
-    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File dataDir,
-                      File dataLogDir, int electionType,
-                      long myid, int tickTime, int initLimit, int syncLimit,
-                      ServerCnxnFactory cnxnFactory) throws IOException {
-        this(quorumPeers, dataDir, dataLogDir, electionType, myid, tickTime,
-                initLimit, syncLimit, false, cnxnFactory,
-                new QuorumMaj(quorumPeers));
-    }
-
-    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File dataDir,
-                      File dataLogDir, int electionType,
-                      long myid, int tickTime, int initLimit, int syncLimit,
-                      boolean quorumListenOnAllIPs,
-                      ServerCnxnFactory cnxnFactory,
-                      QuorumVerifier quorumConfig) throws IOException {
-        this();
-        this.cnxnFactory = cnxnFactory;
-        this.electionType = electionType;
-        this.myid = myid;
-        this.tickTime = tickTime;
-        this.initLimit = initLimit;
-        this.syncLimit = syncLimit;
-        this.quorumListenOnAllIPs = quorumListenOnAllIPs;
-        this.logFactory = new FileTxnSnapLog(dataLogDir, dataDir);
-        this.zkDb = new ZKDatabase(this.logFactory);
-        if (quorumConfig == null) quorumConfig = new QuorumMaj(quorumPeers);
-        setQuorumVerifier(quorumConfig, false);
-        adminServer = AdminServerFactory.createAdminServer();
     }
 
     QuorumStats quorumStats() {
@@ -767,8 +455,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         }
     }
 
-    ResponderThread responder;
-
     synchronized public void stopLeaderElection() {
         responder.running = false;
         responder.interrupt();
@@ -801,63 +487,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     }
 
     /**
-     * Count the number of nodes in the map that could be followers.
-     *
-     * @return The number of followers in the map
-     */
-    protected static int countParticipants(Map<Long, QuorumServer> peers) {
-        int count = 0;
-        for (QuorumServer q : peers.values()) {
-            if (q.type == LearnerType.PARTICIPANT) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    /**
-     * This constructor is only used by the existing unit test code. It defaults to FileLogProvider persistence provider.
-     */
-    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File snapDir,
-                      File logDir, int clientPort, int electionAlg,
-                      long myid, int tickTime, int initLimit, int syncLimit)
-            throws IOException {
-        this(quorumPeers, snapDir, logDir, electionAlg, myid, tickTime, initLimit, syncLimit, false,
-                ServerCnxnFactory.createFactory(getClientAddress(quorumPeers, myid, clientPort), -1),
-                new QuorumMaj(quorumPeers));
-    }
-
-    /**
-     * This constructor is only used by the existing unit test code. It defaults to FileLogProvider persistence provider.
-     */
-    public QuorumPeer(Map<Long, QuorumServer> quorumPeers, File snapDir,
-                      File logDir, int clientPort, int electionAlg,
-                      long myid, int tickTime, int initLimit, int syncLimit,
-                      QuorumVerifier quorumConfig)
-            throws IOException {
-        this(quorumPeers, snapDir, logDir, electionAlg,
-                myid, tickTime, initLimit, syncLimit, false,
-                ServerCnxnFactory.createFactory(getClientAddress(quorumPeers, myid, clientPort), -1),
-                quorumConfig);
-    }
-
-    private static InetSocketAddress getClientAddress(Map<Long, QuorumServer> quorumPeers, long myid, int clientPort)
-            throws IOException {
-        QuorumServer quorumServer = quorumPeers.get(myid);
-        if (null == quorumServer) {
-            throw new IOException("No QuorumServer correspoding to myid " + myid);
-        }
-        if (null == quorumServer.clientAddr) {
-            return new InetSocketAddress(clientPort);
-        }
-        if (quorumServer.clientAddr.getPort() != clientPort) {
-            throw new IOException("QuorumServer port " + quorumServer.clientAddr.getPort()
-                    + " does not match with given port " + clientPort);
-        }
-        return quorumServer.clientAddr;
-    }
-
-    /**
      * returns the highest zxid that this host has seen
      *
      * @return the highest zxid for this host
@@ -868,10 +497,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         }
         return zkDb.getDataTreeLastProcessedZxid();
     }
-
-    public Follower follower;
-    public Leader leader;
-    public Observer observer;
 
     protected Follower makeFollower(FileTxnSnapLog logFactory) throws IOException {
         return new Follower(this, new FollowerZooKeeperServer(logFactory, this, this.zkDb));
@@ -948,8 +573,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             return observer.zk;
         return null;
     }
-
-    boolean shuttingDownLE = false;
 
     @Override
     public void run() {
@@ -1238,7 +861,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         return QuorumStats.Provider.UNKNOWN_STATE;
     }
 
-
     /**
      * set the id of this quorum peer.
      */
@@ -1497,12 +1119,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         this.syncLimit = syncLimit;
     }
 
-
-    /**
-     * The syncEnabled can also be set via a system property.
-     */
-    public static final String SYNC_ENABLED = "zookeeper.observer.syncEnabled";
-
     /**
      * Return syncEnabled.
      */
@@ -1596,12 +1212,12 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         return -1;
     }
 
-    public void setTxnFactory(FileTxnSnapLog factory) {
-        this.logFactory = factory;
-    }
-
     public FileTxnSnapLog getTxnFactory() {
         return this.logFactory;
+    }
+
+    public void setTxnFactory(FileTxnSnapLog factory) {
+        this.logFactory = factory;
     }
 
     /**
@@ -1615,12 +1231,12 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         if (zkDb != null) zkDb.initConfigInZKDatabase(getQuorumVerifier());
     }
 
-    public void setRunning(boolean running) {
-        this.running = running;
-    }
-
     public boolean isRunning() {
         return running;
+    }
+
+    public void setRunning(boolean running) {
+        this.running = running;
     }
 
     /**
@@ -1643,13 +1259,6 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
             br.close();
         }
     }
-
-    private long acceptedEpoch = -1;
-    private long currentEpoch = -1;
-
-    public static final String CURRENT_EPOCH_FILENAME = "currentEpoch";
-
-    public static final String ACCEPTED_EPOCH_FILENAME = "acceptedEpoch";
 
     /**
      * Write a long value to disk atomically. Either succeeds or an exception is thrown.
@@ -1675,17 +1284,17 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         return currentEpoch;
     }
 
+    public void setCurrentEpoch(long e) throws IOException {
+        currentEpoch = e;
+        writeLongToFile(CURRENT_EPOCH_FILENAME, e);
+
+    }
+
     public long getAcceptedEpoch() throws IOException {
         if (acceptedEpoch == -1) {
             acceptedEpoch = readLongFromFile(ACCEPTED_EPOCH_FILENAME);
         }
         return acceptedEpoch;
-    }
-
-    public void setCurrentEpoch(long e) throws IOException {
-        currentEpoch = e;
-        writeLongToFile(CURRENT_EPOCH_FILENAME, e);
-
     }
 
     public void setAcceptedEpoch(long e) throws IOException {
@@ -1842,5 +1451,347 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         String plain = cnxnFactory != null ? cnxnFactory.getLocalAddress().toString() : "disabled";
         String secure = secureCnxnFactory != null ? secureCnxnFactory.getLocalAddress().toString() : "disabled";
         setName(String.format("QuorumPeer[myid=%d](plain=%s)(secure=%s)", getId(), plain, secure));
+    }
+
+    public enum ServerState {
+        LOOKING, FOLLOWING, LEADING, OBSERVING;
+    }
+
+    /*
+     * A peer can either be participating, which implies that it is willing to
+     * both vote in instances of consensus and to elect or become a Leader, or
+     * it may be observing in which case it isn't.
+     *
+     * We need this distinction to decide which ServerState to move to when
+     * conditions change (e.g. which state to become after LOOKING).
+     */
+    public enum LearnerType {
+        PARTICIPANT, OBSERVER;
+    }
+
+    public static class QuorumServer {
+        private static final String wrongFormat = " does not have the form server_config or server_config;client_config" +
+                " where server_config is host:port:port or host:port:port:type and client_config is port or host:port";
+        public InetSocketAddress addr = null;
+        public InetSocketAddress electionAddr = null;
+        public InetSocketAddress clientAddr = null;
+        public long id;
+        public LearnerType type = LearnerType.PARTICIPANT;
+        private List<InetSocketAddress> myAddrs;
+
+        public QuorumServer(long id, InetSocketAddress addr,
+                            InetSocketAddress electionAddr, InetSocketAddress clientAddr) {
+            this(id, addr, electionAddr, clientAddr, LearnerType.PARTICIPANT);
+        }
+
+        public QuorumServer(long id, InetSocketAddress addr,
+                            InetSocketAddress electionAddr) {
+            this(id, addr, electionAddr, (InetSocketAddress) null, LearnerType.PARTICIPANT);
+        }
+
+        public QuorumServer(long id, InetSocketAddress addr) {
+            this(id, addr, (InetSocketAddress) null, (InetSocketAddress) null, LearnerType.PARTICIPANT);
+        }
+
+        public QuorumServer(long sid, String addressStr) throws ConfigException {
+            // LOG.warn("sid = " + sid + " addressStr = " + addressStr);
+            this.id = sid;
+            String serverClientParts[] = addressStr.split(";");
+            String serverParts[] = splitWithLeadingHostname(serverClientParts[0]);
+            if ((serverClientParts.length > 2) || (serverParts.length < 3)
+                    || (serverParts.length > 4)) {
+                throw new ConfigException(addressStr + wrongFormat);
+            }
+
+            if (serverClientParts.length == 2) {
+                //LOG.warn("ClientParts: " + serverClientParts[1]);
+                String clientParts[] = splitWithLeadingHostname(serverClientParts[1]);
+                if (clientParts.length > 2) {
+                    throw new ConfigException(addressStr + wrongFormat);
+                }
+
+                // is client_config a host:port or just a port
+                String hostname = (clientParts.length == 2) ? clientParts[0] : "0.0.0.0";
+                try {
+                    clientAddr = new InetSocketAddress(hostname,
+                            Integer.parseInt(clientParts[clientParts.length - 1]));
+                    //LOG.warn("Set clientAddr to " + clientAddr);
+                } catch (NumberFormatException e) {
+                    throw new ConfigException("Address unresolved: " + hostname + ":" + clientParts[clientParts.length - 1]);
+                }
+            }
+
+            // server_config should be either host:port:port or host:port:port:type
+            try {
+                addr = new InetSocketAddress(serverParts[0],
+                        Integer.parseInt(serverParts[1]));
+            } catch (NumberFormatException e) {
+                throw new ConfigException("Address unresolved: " + serverParts[0] + ":" + serverParts[1]);
+            }
+            try {
+                electionAddr = new InetSocketAddress(serverParts[0],
+                        Integer.parseInt(serverParts[2]));
+            } catch (NumberFormatException e) {
+                throw new ConfigException("Address unresolved: " + serverParts[0] + ":" + serverParts[2]);
+            }
+
+            if (serverParts.length == 4) {
+                setType(serverParts[3]);
+            }
+
+            setMyAddrs();
+        }
+
+        public QuorumServer(long id, InetSocketAddress addr,
+                            InetSocketAddress electionAddr, LearnerType type) {
+            this(id, addr, electionAddr, (InetSocketAddress) null, type);
+        }
+
+        public QuorumServer(long id, InetSocketAddress addr,
+                            InetSocketAddress electionAddr, InetSocketAddress clientAddr, LearnerType type) {
+            this.id = id;
+            this.addr = addr;
+            this.electionAddr = electionAddr;
+            this.type = type;
+            this.clientAddr = clientAddr;
+
+            setMyAddrs();
+        }
+
+        private static String[] splitWithLeadingHostname(String s)
+                throws ConfigException {
+            /* Does it start with an IPv6 literal? */
+            if (s.startsWith("[")) {
+                int i = s.indexOf("]:");
+                if (i < 0) {
+                    throw new ConfigException(s + " starts with '[' but has no matching ']:'");
+                }
+
+                String[] sa = s.substring(i + 2).split(":");
+                String[] nsa = new String[sa.length + 1];
+                nsa[0] = s.substring(1, i);
+                System.arraycopy(sa, 0, nsa, 1, sa.length);
+
+                return nsa;
+            } else {
+                return s.split(":");
+            }
+        }
+
+        private static String delimitedHostString(InetSocketAddress addr) {
+            String host = addr.getHostString();
+            if (host.contains(":")) {
+                return "[" + host + "]";
+            } else {
+                return host;
+            }
+        }
+
+        /**
+         * Performs a DNS lookup for server address and election address.
+         *
+         * If the DNS lookup fails, this.addr and electionAddr remain unmodified.
+         */
+        public void recreateSocketAddresses() {
+            if (this.addr == null) {
+                LOG.warn("Server address has not been initialized");
+                return;
+            }
+            if (this.electionAddr == null) {
+                LOG.warn("Election address has not been initialized");
+                return;
+            }
+            String host = this.addr.getHostString();
+            InetAddress address = null;
+            try {
+                address = InetAddress.getByName(host);
+            } catch (UnknownHostException ex) {
+                LOG.warn("Failed to resolve address: {}", host, ex);
+                return;
+            }
+            LOG.debug("Resolved address for {}: {}", host, address);
+            int port = this.addr.getPort();
+            this.addr = new InetSocketAddress(address, port);
+            port = this.electionAddr.getPort();
+            this.electionAddr = new InetSocketAddress(address, port);
+        }
+
+        private void setType(String s) throws ConfigException {
+            if (s.toLowerCase().equals("observer")) {
+                type = LearnerType.OBSERVER;
+            } else if (s.toLowerCase().equals("participant")) {
+                type = LearnerType.PARTICIPANT;
+            } else {
+                throw new ConfigException("Unrecognised peertype: " + s);
+            }
+        }
+
+        private void setMyAddrs() {
+            this.myAddrs = new ArrayList<InetSocketAddress>();
+            this.myAddrs.add(this.addr);
+            this.myAddrs.add(this.clientAddr);
+            this.myAddrs.add(this.electionAddr);
+            this.myAddrs = excludedSpecialAddresses(this.myAddrs);
+        }
+
+        public String toString() {
+            StringWriter sw = new StringWriter();
+            //addr should never be null, but just to make sure
+            if (addr != null) {
+                sw.append(delimitedHostString(addr));
+                sw.append(":");
+                sw.append(String.valueOf(addr.getPort()));
+            }
+            if (electionAddr != null) {
+                sw.append(":");
+                sw.append(String.valueOf(electionAddr.getPort()));
+            }
+            if (type == LearnerType.OBSERVER) sw.append(":observer");
+            else if (type == LearnerType.PARTICIPANT) sw.append(":participant");
+            if (clientAddr != null) {
+                sw.append(";");
+                sw.append(delimitedHostString(clientAddr));
+                sw.append(":");
+                sw.append(String.valueOf(clientAddr.getPort()));
+            }
+            return sw.toString();
+        }
+
+        public int hashCode() {
+            assert false : "hashCode not designed";
+            return 42; // any arbitrary constant will do
+        }
+
+        private boolean checkAddressesEqual(InetSocketAddress addr1, InetSocketAddress addr2) {
+            if ((addr1 == null && addr2 != null) ||
+                    (addr1 != null && addr2 == null) ||
+                    (addr1 != null && addr2 != null && !addr1.equals(addr2))) return false;
+            return true;
+        }
+
+        public boolean equals(Object o) {
+            if (!(o instanceof QuorumServer)) return false;
+            QuorumServer qs = (QuorumServer) o;
+            if ((qs.id != id) || (qs.type != type)) return false;
+            if (!checkAddressesEqual(addr, qs.addr)) return false;
+            if (!checkAddressesEqual(electionAddr, qs.electionAddr)) return false;
+            if (!checkAddressesEqual(clientAddr, qs.clientAddr)) return false;
+            return true;
+        }
+
+        public void checkAddressDuplicate(QuorumServer s) throws BadArgumentsException {
+            List<InetSocketAddress> otherAddrs = new ArrayList<InetSocketAddress>();
+            otherAddrs.add(s.addr);
+            otherAddrs.add(s.clientAddr);
+            otherAddrs.add(s.electionAddr);
+            otherAddrs = excludedSpecialAddresses(otherAddrs);
+
+            for (InetSocketAddress my : this.myAddrs) {
+
+                for (InetSocketAddress other : otherAddrs) {
+                    if (my.equals(other)) {
+                        String error = String.format("%s of server.%d conflicts %s of server.%d", my, this.id, other, s.id);
+                        throw new BadArgumentsException(error);
+                    }
+                }
+            }
+        }
+
+        private List<InetSocketAddress> excludedSpecialAddresses(List<InetSocketAddress> addrs) {
+            List<InetSocketAddress> included = new ArrayList<InetSocketAddress>();
+            InetAddress wcAddr = new InetSocketAddress(0).getAddress();
+
+            for (InetSocketAddress addr : addrs) {
+                if (addr == null) {
+                    continue;
+                }
+                InetAddress inetaddr = addr.getAddress();
+
+                if (inetaddr == null ||
+                        inetaddr.equals(wcAddr) || // wildCard address(0.0.0.0)
+                        inetaddr.isLoopbackAddress()) { // loopback address(localhost/127.0.0.1)
+                    continue;
+                }
+                included.add(addr);
+            }
+            return included;
+        }
+    }
+
+    /**
+     * @deprecated As of release 3.4.0, this class has been deprecated, since it is used with one of the udp-based versions of leader election, which we are also deprecating.
+     *
+     * This class simply responds to requests for the current leader of this node. <p> The request contains just an xid generated by the requestor. <p> The response has the xid, the id of this server,
+     * the id of the leader, and the zxid of the leader.
+     */
+    @Deprecated
+    class ResponderThread extends ZooKeeperThread {
+        volatile boolean running = true;
+
+        ResponderThread() {
+            super("ResponderThread");
+        }
+
+        @Override
+        public void run() {
+            try {
+                byte b[] = new byte[36];
+                ByteBuffer responseBuffer = ByteBuffer.wrap(b);
+                DatagramPacket packet = new DatagramPacket(b, b.length);
+                while (running) {
+                    udpSocket.receive(packet);
+                    if (packet.getLength() != 4) {
+                        LOG.warn("Got more than just an xid! Len = "
+                                + packet.getLength());
+                    } else {
+                        responseBuffer.clear();
+                        responseBuffer.getInt(); // Skip the xid
+                        responseBuffer.putLong(myid);
+                        Vote current = getCurrentVote();
+                        switch (getPeerState()) {
+                            case LOOKING:
+                                responseBuffer.putLong(current.getId());
+                                responseBuffer.putLong(current.getZxid());
+                                break;
+                            case LEADING:
+                                responseBuffer.putLong(myid);
+                                try {
+                                    long proposed;
+                                    synchronized (leader) {
+                                        proposed = leader.lastProposed;
+                                    }
+                                    responseBuffer.putLong(proposed);
+                                } catch (NullPointerException npe) {
+                                    // This can happen in state transitions,
+                                    // just ignore the request
+                                }
+                                break;
+                            case FOLLOWING:
+                                responseBuffer.putLong(current.getId());
+                                try {
+                                    responseBuffer.putLong(follower.getZxid());
+                                } catch (NullPointerException npe) {
+                                    // This can happen in state transitions,
+                                    // just ignore the request
+                                }
+                                break;
+                            case OBSERVING:
+                                // Do nothing, Observers keep themselves to
+                                // themselves.
+                                break;
+                        }
+                        packet.setData(b);
+                        udpSocket.send(packet);
+                    }
+                    packet.setLength(b.length);
+                }
+            } catch (RuntimeException e) {
+                LOG.warn("Unexpected runtime exception in ResponderThread", e);
+            } catch (IOException e) {
+                LOG.warn("Unexpected IO exception in ResponderThread", e);
+            } finally {
+                LOG.warn("QuorumPeer responder thread exited");
+            }
+        }
     }
 }

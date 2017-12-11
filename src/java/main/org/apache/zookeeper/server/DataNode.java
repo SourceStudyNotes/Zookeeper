@@ -1,28 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Collections;
 
 import org.apache.jute.InputArchive;
 import org.apache.jute.OutputArchive;
@@ -32,28 +19,31 @@ import org.apache.zookeeper.data.StatPersisted;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * This class contains the data for a node in the data tree.
  * <p>
  * A data node contains a reference to its parent, a byte array as its data, an
  * array of ACLs, a stat object, and a set of its children's paths.
- * 
+ *
  */
 public class DataNode implements Record {
     private static final Logger LOG = LoggerFactory.getLogger(DataNode.class);
-    /** the data for this datanode */
-    byte data[];
-
-    /**
-     * the acl map long for this datanode. the datatree has the map
-     */
-    Long acl;
-
     /**
      * the stat for this node that is persisted to disk.
      */
     public StatPersisted stat;
-
+    /** the data for this datanode */
+    byte data[];
+    /**
+     * the acl map long for this datanode. the datatree has the map
+     */
+    Long acl;
     /**
      * the list of children for this node. note that the list of children string
      * does not contain the parent path -- just the last part of the path. This
@@ -70,7 +60,7 @@ public class DataNode implements Record {
 
     /**
      * create a DataNode with parent, data, acls and stat
-     * 
+     *
      * @param parent
      *            the parent of this DataNode
      * @param data
@@ -85,15 +75,20 @@ public class DataNode implements Record {
         this.acl = acl;
         this.stat = stat;
         try {
-            LOG.info("DataNode->data:{}",new String(data,"utf-8"));
+            LOG.info("DataNode->data:{}", new String(data, "utf-8"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
     }
 
+    private static long getClientEphemeralOwner(StatPersisted stat) {
+        return (stat.getEphemeralOwner() == DataTree.CONTAINER_EPHEMERAL_OWNER)
+                ? 0 : stat.getEphemeralOwner();
+    }
+
     /**
      * Method that inserts a child into the children set
-     * 
+     *
      * @param child
      *            to be inserted
      * @return true if this set did not already contain the specified element
@@ -108,7 +103,7 @@ public class DataNode implements Record {
 
     /**
      * Method that removes a child from the children set
-     * 
+     *
      * @param child
      * @return true if this set contained the specified element
      */
@@ -120,17 +115,8 @@ public class DataNode implements Record {
     }
 
     /**
-     * convenience method for setting the children for this datanode
-     * 
-     * @param children
-     */
-    public synchronized void setChildren(HashSet<String> children) {
-        this.children = children;
-    }
-
-    /**
      * convenience methods to get the children
-     * 
+     *
      * @return the children of this datanode
      */
     public synchronized Set<String> getChildren() {
@@ -141,8 +127,17 @@ public class DataNode implements Record {
         return Collections.unmodifiableSet(children);
     }
 
+    /**
+     * convenience method for setting the children for this datanode
+     *
+     * @param children
+     */
+    public synchronized void setChildren(HashSet<String> children) {
+        this.children = children;
+    }
+
     public synchronized long getApproximateDataSize() {
-        if(null==data) return 0;
+        if (null == data) return 0;
         return data.length;
     }
 
@@ -163,13 +158,8 @@ public class DataNode implements Record {
         // when we do the Cversion we need to translate from the count of the creates
         // to the count of the changes (v3 semantics)
         // for every create there is a delete except for the children still present
-        to.setCversion(stat.getCversion()*2 - numChildren);
+        to.setCversion(stat.getCversion() * 2 - numChildren);
         to.setNumChildren(numChildren);
-    }
-
-    private static long getClientEphemeralOwner(StatPersisted stat) {
-        return (stat.getEphemeralOwner() == DataTree.CONTAINER_EPHEMERAL_OWNER)
-                ? 0 : stat.getEphemeralOwner();
     }
 
     synchronized public void deserialize(InputArchive archive, String tag)

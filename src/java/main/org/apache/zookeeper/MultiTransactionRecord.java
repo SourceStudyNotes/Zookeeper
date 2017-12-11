@@ -20,7 +20,11 @@ package org.apache.zookeeper;
 import org.apache.jute.InputArchive;
 import org.apache.jute.OutputArchive;
 import org.apache.jute.Record;
-import org.apache.zookeeper.proto.*;
+import org.apache.zookeeper.proto.CheckVersionRequest;
+import org.apache.zookeeper.proto.CreateRequest;
+import org.apache.zookeeper.proto.DeleteRequest;
+import org.apache.zookeeper.proto.MultiHeader;
+import org.apache.zookeeper.proto.SetDataRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,11 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Encodes a composite transaction.  In the wire format, each transaction
- * consists of a single MultiHeader followed by the appropriate request.
- * Each of these MultiHeaders has a type which indicates
- * the type of the following transaction or a negative number if no more transactions
- * are included.
+ * Encodes a composite transaction.  In the wire format, each transaction consists of a single MultiHeader followed by the appropriate request. Each of these MultiHeaders has a type which indicates
+ * the type of the following transaction or a negative number if no more transactions are included.
  */
 public class MultiTransactionRecord implements Record, Iterable<Op> {
     private List<Op> ops = new ArrayList<Op>();
@@ -48,7 +49,7 @@ public class MultiTransactionRecord implements Record, Iterable<Op> {
 
     @Override
     public Iterator<Op> iterator() {
-        return ops.iterator() ;
+        return ops.iterator();
     }
 
     public void add(Op op) {

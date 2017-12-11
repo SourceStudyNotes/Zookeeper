@@ -26,8 +26,7 @@ import java.util.Map;
 public class WatchesSummary {
 
     /**
-     * The key in the map returned by {@link #toMap()} for the number of
-     * connections.
+     * The key in the map returned by {@link #toMap()} for the number of connections.
      */
     public static final String KEY_NUM_CONNECTIONS = "num_connections";
     /**
@@ -35,8 +34,7 @@ public class WatchesSummary {
      */
     public static final String KEY_NUM_PATHS = "num_paths";
     /**
-     * The key in the map returned by {@link #toMap()} for the total number of
-     * watches.
+     * The key in the map returned by {@link #toMap()} for the total number of watches.
      */
     public static final String KEY_NUM_TOTAL_WATCHES = "num_total_watches";
 
@@ -48,8 +46,8 @@ public class WatchesSummary {
      * Creates a new summary.
      *
      * @param numConnections the number of sessions that have set watches
-     * @param numPaths the number of paths that have watches set on them
-     * @param totalWatches the total number of watches set
+     * @param numPaths       the number of paths that have watches set on them
+     * @param totalWatches   the total number of watches set
      */
     WatchesSummary(int numConnections, int numPaths, int totalWatches) {
         this.numConnections = numConnections;
@@ -65,6 +63,7 @@ public class WatchesSummary {
     public int getNumConnections() {
         return numConnections;
     }
+
     /**
      * Gets the number of paths that have watches set on them.
      *
@@ -73,6 +72,7 @@ public class WatchesSummary {
     public int getNumPaths() {
         return numPaths;
     }
+
     /**
      * Gets the total number of watches set.
      *
@@ -83,8 +83,7 @@ public class WatchesSummary {
     }
 
     /**
-     * Converts this summary to a map. The returned map is mutable, and changes
-     * to it do not reflect back into this summary.
+     * Converts this summary to a map. The returned map is mutable, and changes to it do not reflect back into this summary.
      *
      * @return map representation of summary
      */

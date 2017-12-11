@@ -1,19 +1,12 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.server;
@@ -49,9 +42,9 @@ public class ZxidRolloverTest extends ZKTestCase {
     private CountdownWatcher[] zkClientWatchers = new CountdownWatcher[3];
     private int idxLeader;
     private int idxFollower;
-    
+
     private ZooKeeper getClient(int idx) {
-        return zkClients[idx-1];
+        return zkClients[idx - 1];
     }
 
     @Before
@@ -74,7 +67,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         }
         waitForClientsConnected();
     }
-    
+
     private void waitForClientsConnected() throws Exception {
         for (int i = 0; i < zkClients.length; i++) {
             zkClientWatchers[i].waitForConnected(ClientTest.CONNECTION_TIMEOUT);
@@ -93,7 +86,7 @@ public class ZxidRolloverTest extends ZKTestCase {
 
     /**
      * Ensure the client is able to talk to the server.
-     * 
+     *
      * @param idx the idx of the server the client is talking to
      */
     private void checkClientConnected(int idx) throws Exception {
@@ -131,7 +124,7 @@ public class ZxidRolloverTest extends ZKTestCase {
 
     /**
      * Ensure the client is able to talk to the server
-     * 
+     *
      * @param idx the idx of the server the client is talking to
      */
     private void checkClientDisconnected(int idx) throws Exception {
@@ -153,6 +146,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         // all clients should be connected
         checkClientsConnected();
     }
+
     private void start(int idx) throws Exception {
         qu.start(idx);
         for (String hp : qu.getConnString().split(",")) {
@@ -167,7 +161,7 @@ public class ZxidRolloverTest extends ZKTestCase {
 
     private void checkLeader() {
         idxLeader = 1;
-        while(qu.getPeer(idxLeader).peer.leader == null) {
+        while (qu.getPeer(idxLeader).peer.leader == null) {
             idxLeader++;
         }
         idxFollower = (idxLeader == 1 ? 2 : 1);
@@ -180,7 +174,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         // all clients should be disconnected
         checkClientsDisconnected();
     }
-    
+
     private void shutdown(int idx) throws Exception {
         qu.shutdown(idx);
 
@@ -238,6 +232,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         }
         return j;
     }
+
     /**
      * Verify the expected znodes were created and that the last znode, which
      * caused the roll-over, did not.
@@ -261,7 +256,7 @@ public class ZxidRolloverTest extends ZKTestCase {
 
         ZooKeeper zk = getClient((idxLeader == 1 ? 2 : 1));
         int countCreated = createNodes(zk, 0, 10);
-        
+
         checkNodes(zk, 0, countCreated);
     }
 
@@ -272,11 +267,11 @@ public class ZxidRolloverTest extends ZKTestCase {
     @Test
     public void testRolloverThenRestart() throws Exception {
         ZooKeeper zk = getClient(idxFollower);
-        
+
         int countCreated = createNodes(zk, 0, 10);
 
         adjustEpochNearEnd();
-        
+
         countCreated += createNodes(zk, countCreated, 10);
 
         shutdownAll();
@@ -287,7 +282,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         countCreated += createNodes(zk, countCreated, 10);
 
         adjustEpochNearEnd();
-        
+
         checkNodes(zk, 0, countCreated);
         countCreated += createNodes(zk, countCreated, 10);
 
@@ -321,7 +316,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         int countCreated = createNodes(zk, 0, 10);
 
         adjustEpochNearEnd();
-        
+
         countCreated += createNodes(zk, countCreated, 10);
 
         shutdown(idxFollower);
@@ -331,7 +326,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         countCreated += createNodes(zk, countCreated, 10);
 
         adjustEpochNearEnd();
-        
+
         checkNodes(zk, 0, countCreated);
         countCreated += createNodes(zk, countCreated, 10);
 
@@ -363,7 +358,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         int countCreated = createNodes(zk, 0, 10);
 
         adjustEpochNearEnd();
-        
+
         checkNodes(zk, 0, countCreated);
 
         shutdown(idxLeader);
@@ -374,7 +369,7 @@ public class ZxidRolloverTest extends ZKTestCase {
         countCreated += createNodes(zk, countCreated, 10);
 
         adjustEpochNearEnd();
-        
+
         checkNodes(zk, 0, countCreated);
         countCreated += createNodes(zk, countCreated, 10);
 
@@ -408,15 +403,15 @@ public class ZxidRolloverTest extends ZKTestCase {
         int countCreated = createNodes(zk, 0, 10);
 
         adjustEpochNearEnd();
-        
-        countCreated += createNodes(zk, countCreated, 10);
-
-        adjustEpochNearEnd();
 
         countCreated += createNodes(zk, countCreated, 10);
 
         adjustEpochNearEnd();
-        
+
+        countCreated += createNodes(zk, countCreated, 10);
+
+        adjustEpochNearEnd();
+
         countCreated += createNodes(zk, countCreated, 10);
 
         adjustEpochNearEnd();

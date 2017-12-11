@@ -31,7 +31,7 @@ Raphael.fn.g.barchart = function (x, y, width, height, values, opts) {
             for (var i = len; i--;) {
                 var tot = 0;
                 for (var j = values.length; j--;) {
-                    tot +=+ values[j][i] || 0;
+                    tot += +values[j][i] || 0;
                 }
                 stacktotal.push(tot);
             }
@@ -45,7 +45,7 @@ Raphael.fn.g.barchart = function (x, y, width, height, values, opts) {
         }
         total = Math.max.apply(Math, opts.stacked ? stacktotal : total);
     }
-    
+
     total = (opts.to) || total;
     var barwidth = width / (len * (100 + gutter) + gutter) * 100,
         barhgutter = barwidth * gutter / 100,
@@ -168,7 +168,8 @@ Raphael.fn.g.barchart = function (x, y, width, height, values, opts) {
     chart.hoverColumn = function (fin, fout) {
         covers.hide();
         covers2.show();
-        fout = fout || function () {};
+        fout = fout || function () {
+        };
         covers2.mouseover(fin).mouseout(fout);
         return this;
     };
@@ -234,7 +235,7 @@ Raphael.fn.g.hbarchart = function (x, y, width, height, values, opts) {
             for (var i = len; i--;) {
                 var tot = 0;
                 for (var j = values.length; j--;) {
-                    tot +=+ values[j][i] || 0;
+                    tot += +values[j][i] || 0;
                 }
                 stacktotal.push(tot);
             }
@@ -248,7 +249,7 @@ Raphael.fn.g.hbarchart = function (x, y, width, height, values, opts) {
         }
         total = Math.max.apply(Math, opts.stacked ? stacktotal : total);
     }
-    
+
     total = (opts.to) || total;
     var barheight = Math.floor(height / (len * (100 + gutter) + gutter) * 100),
         bargutter = Math.floor(barheight * gutter / 100),
@@ -320,7 +321,7 @@ Raphael.fn.g.hbarchart = function (x, y, width, height, values, opts) {
         this.labels = paper.set();
         for (var i = 0; i < len; i++) {
             for (var j = 0; j < multi; j++) {
-                var  label = paper.g.labelise(multi ? labels[j] && labels[j][i] : labels[i], multi ? values[j][i] : values[i], total);
+                var label = paper.g.labelise(multi ? labels[j] && labels[j][i] : labels[i], multi ? values[j][i] : values[i], total);
                 var X = isRight ? bars[i * (multi || 1) + j].x - barheight / 2 + 3 : x + 5,
                     A = isRight ? "end" : "start",
                     L;
@@ -337,14 +338,16 @@ Raphael.fn.g.hbarchart = function (x, y, width, height, values, opts) {
     chart.hover = function (fin, fout) {
         covers2.hide();
         covers.show();
-        fout = fout || function () {};
+        fout = fout || function () {
+        };
         covers.mouseover(fin).mouseout(fout);
         return this;
     };
     chart.hoverColumn = function (fin, fout) {
         covers.hide();
         covers2.show();
-        fout = fout || function () {};
+        fout = fout || function () {
+        };
         covers2.mouseover(fin).mouseout(fout);
         return this;
     };

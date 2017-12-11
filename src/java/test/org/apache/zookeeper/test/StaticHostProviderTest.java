@@ -1,26 +1,15 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
 package org.apache.zookeeper.test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.client.HostProvider;
@@ -36,8 +25,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Random;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
 public class StaticHostProviderTest extends ZKTestCase {
+    private final double slackPercent = 10;
+    private final int numClients = 10000;
     private Random r = new Random(1);
+    private HashMap<Byte, Collection<InetSocketAddress>> precomputedLists = new
+            HashMap<Byte, Collection<InetSocketAddress>>();
 
     @Test
     public void testNextGoesRound() {
@@ -111,9 +108,6 @@ public class StaticHostProviderTest extends ZKTestCase {
         assertNotSame(first, second);
     }
 
-    private final double slackPercent = 10;
-    private final int numClients = 10000;
-
     @Test
     public void testUpdateClientMigrateOrNot() throws UnknownHostException {
         HostProvider hostProvider = getHostProvider((byte) 4); // 10.10.10.4:1238, 10.10.10.3:1237, 10.10.10.2:1236, 10.10.10.1:1235
@@ -125,7 +119,7 @@ public class StaticHostProviderTest extends ZKTestCase {
         boolean disconnectRequired = hostProvider.updateServerList(newList, myServer);
         assertTrue(!disconnectRequired);
         hostProvider.onConnected();
-        
+
         // Number of machines stayed the same, my server is in the new cluster
         disconnectRequired = hostProvider.updateServerList(newList, myServer);
         assertTrue(!disconnectRequired);
@@ -170,7 +164,7 @@ public class StaticHostProviderTest extends ZKTestCase {
         }
         hostProvider.onConnected();
 
-       // should be numClients/10 in expectation, we test that its numClients/10 +- slackPercent 
+        // should be numClients/10 in expectation, we test that its numClients/10 +- slackPercent
         assertTrue(numDisconnects < upperboundCPS(numClients, 10));
     }
 
@@ -181,7 +175,7 @@ public class StaticHostProviderTest extends ZKTestCase {
         Collection<InetSocketAddress> newList = new ArrayList<InetSocketAddress>(
                 10);
         for (byte i = 12; i > 2; i--) { // 1246, 1245, 1244, 1243, 1242, 1241,
-                                       // 1240, 1239, 1238, 1237
+            // 1240, 1239, 1238, 1237
             newList.add(new InetSocketAddress(InetAddress.getByAddress(new byte[]{10, 10, 10, i}), 1234 + i));
         }
 
@@ -460,9 +454,7 @@ public class StaticHostProviderTest extends ZKTestCase {
         return new StaticHostProvider(getServerAddresses(size), r.nextLong());
     }
 
-    private HashMap<Byte, Collection<InetSocketAddress>> precomputedLists = new
-            HashMap<Byte, Collection<InetSocketAddress>>();
-    private Collection<InetSocketAddress> getServerAddresses(byte size)   {
+    private Collection<InetSocketAddress> getServerAddresses(byte size) {
         if (precomputedLists.containsKey(size)) return precomputedLists.get(size);
         ArrayList<InetSocketAddress> list = new ArrayList<InetSocketAddress>(
                 size);
@@ -480,11 +472,11 @@ public class StaticHostProviderTest extends ZKTestCase {
     }
 
     private double lowerboundCPS(int numClients, int numServers) {
-        return (1 - slackPercent/100.0) * numClients / numServers;
+        return (1 - slackPercent / 100.0) * numClients / numServers;
     }
 
     private double upperboundCPS(int numClients, int numServers) {
-        return (1 + slackPercent/100.0) * numClients / numServers;
+        return (1 + slackPercent / 100.0) * numClients / numServers;
     }
 
     @Test

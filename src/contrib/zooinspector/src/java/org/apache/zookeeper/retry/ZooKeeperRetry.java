@@ -1,25 +1,14 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright
+ * ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.zookeeper.retry;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -29,14 +18,18 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.inspector.logger.LoggerFactory;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A Class which extends {@link ZooKeeper} and will automatically retry calls to
  * zookeeper if a {@link KeeperException.ConnectionLossException} occurs
  */
 public class ZooKeeperRetry extends ZooKeeper {
 
-    private boolean closed = false;
     private final Watcher watcher;
+    private boolean closed = false;
     private int limit = -1;
 
     /**
@@ -46,7 +39,7 @@ public class ZooKeeperRetry extends ZooKeeper {
      * @throws IOException
      */
     public ZooKeeperRetry(String connectString, int sessionTimeout,
-            Watcher watcher) throws IOException {
+                          Watcher watcher) throws IOException {
         super(connectString, sessionTimeout, watcher);
         this.watcher = watcher;
     }
@@ -60,7 +53,7 @@ public class ZooKeeperRetry extends ZooKeeper {
      * @throws IOException
      */
     public ZooKeeperRetry(String connectString, int sessionTimeout,
-            Watcher watcher, long sessionId, byte[] sessionPasswd)
+                          Watcher watcher, long sessionId, byte[] sessionPasswd)
             throws IOException {
         super(connectString, sessionTimeout, watcher, sessionId, sessionPasswd);
         this.watcher = watcher;
@@ -74,7 +67,7 @@ public class ZooKeeperRetry extends ZooKeeper {
 
     @Override
     public String create(String path, byte[] data, List<ACL> acl,
-            CreateMode createMode) throws KeeperException, InterruptedException {
+                         CreateMode createMode) throws KeeperException, InterruptedException {
         int count = 0;
         do {
             try {

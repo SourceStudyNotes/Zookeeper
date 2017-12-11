@@ -19,15 +19,14 @@ package org.apache.zookeeper;
 
 import org.apache.zookeeper.AsyncCallback.MultiCallback;
 import org.apache.zookeeper.data.ACL;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Provides a builder style interface for doing multiple updates.  This is
- * really just a thin layer on top of Zookeeper.multi().
+ * Provides a builder style interface for doing multiple updates.  This is really just a thin layer on top of Zookeeper.multi().
  *
  * @since 3.4.0
- *
  */
 public class Transaction {
     private ZooKeeper zk;
