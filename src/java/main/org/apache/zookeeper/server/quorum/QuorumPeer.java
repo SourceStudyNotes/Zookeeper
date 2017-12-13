@@ -98,6 +98,8 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
     public QuorumVerifier quorumVerifier;
     //last proposed quorum verifier
     public QuorumVerifier lastSeenQuorumVerifier = null;
+
+
     public Follower follower;
 
     /*

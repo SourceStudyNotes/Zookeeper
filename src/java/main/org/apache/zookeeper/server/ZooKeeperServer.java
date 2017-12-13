@@ -85,8 +85,8 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
 
     final List<ChangeRecord> outstandingChanges = new ArrayList<ChangeRecord>();
     // this data structure must be accessed under the outstandingChanges lock
-    final HashMap<String, ChangeRecord> outstandingChangesForPath =
-            new HashMap<String, ChangeRecord>();
+    final HashMap<String, ChangeRecord> outstandingChangesForPath = new HashMap<String, ChangeRecord>();
+
     private final AtomicLong hzxid = new AtomicLong(0);
     private final AtomicInteger requestsInProcess = new AtomicInteger(0);
     private final ServerStats serverStats;
@@ -1015,8 +1015,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         return processTxn(request, request.getHdr(), request.getTxn());
     }
 
-    private ProcessTxnResult processTxn(Request request, TxnHeader hdr,
-                                        Record txn) {
+    private ProcessTxnResult processTxn(Request request, TxnHeader hdr, Record txn) {
         ProcessTxnResult rc;
         int opCode = request != null ? request.type : hdr.getType();
         long sessionId = request != null ? request.sessionId : hdr.getClientId();

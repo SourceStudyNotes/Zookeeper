@@ -183,7 +183,6 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
     }
 
     public void processRequest(Request request) {
-        // request.addRQRec(">sync");
         queuedRequests.add(request);
     }
 

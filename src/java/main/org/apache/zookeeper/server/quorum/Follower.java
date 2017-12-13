@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
  */
 public class Follower extends Learner {
 
+    //上次处理的事务id
     private long lastQueued;
     // This is the same object as this.zk, but we cache the downcast op
     final FollowerZooKeeperServer fzk;
@@ -111,19 +112,14 @@ public class Follower extends Learner {
                 TxnHeader hdr = new TxnHeader();
                 Record txn = SerializeUtils.deserializeTxn(qp.getData(), hdr);
                 if (hdr.getZxid() != lastQueued + 1) {
-                    LOG.warn("Got zxid 0x"
-                            + Long.toHexString(hdr.getZxid())
-                            + " expected 0x"
-                            + Long.toHexString(lastQueued + 1));
+                    LOG.warn("Got zxid 0x" + Long.toHexString(hdr.getZxid()) + " expected 0x" + Long.toHexString(lastQueued + 1));
                 }
                 lastQueued = hdr.getZxid();
-
                 if (hdr.getType() == OpCode.reconfig) {
                     SetDataTxn setDataTxn = (SetDataTxn) txn;
                     QuorumVerifier qv = self.configFromString(new String(setDataTxn.getData()));
                     self.setLastSeenQuorumVerifier(qv, true);
                 }
-
                 fzk.logRequest(hdr, txn);
                 break;
             case Leader.COMMIT:

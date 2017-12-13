@@ -25,44 +25,34 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * This RequestProcessor matches the incoming committed requests with the
- * locally submitted requests. The trick is that locally submitted requests that
- * change the state of the system will come back as incoming committed requests,
- * so we need to match them up.
+ * This RequestProcessor matches the incoming committed requests with the locally submitted requests. The trick is that locally submitted requests that change the state of the system will come back as
+ * incoming committed requests, so we need to match them up.
  *
- * The CommitProcessor is multi-threaded. Communication between threads is
- * handled via queues, atomics, and wait/notifyAll synchronized on the
- * processor. The CommitProcessor acts as a gateway for allowing requests to
- * continue with the remainder of the processing pipeline. It will allow many
- * read requests but only a single write request to be in flight simultaneously,
- * thus ensuring that write requests are processed in transaction id order.
+ * The CommitProcessor is multi-threaded. Communication between threads is handled via queues, atomics, and wait/notifyAll synchronized on the processor. The CommitProcessor acts as a gateway for
+ * allowing requests to continue with the remainder of the processing pipeline. It will allow many read requests but only a single write request to be in flight simultaneously, thus ensuring that
+ * write requests are processed in transaction id order.
  *
- *   - 1   commit processor main thread, which watches the request queues and
- *         assigns requests to worker threads based on their sessionId so that
- *         read and write requests for a particular session are always assigned
- *         to the same thread (and hence are guaranteed to run in order).
- *   - 0-N worker threads, which run the rest of the request processor pipeline
- *         on the requests. If configured with 0 worker threads, the primary
- *         commit processor thread runs the pipeline directly.
+ * - 1   commit processor main thread, which watches the request queues and assigns requests to worker threads based on their sessionId so that read and write requests for a particular session are
+ * always assigned to the same thread (and hence are guaranteed to run in order). - 0-N worker threads, which run the rest of the request processor pipeline on the requests. If configured with 0
+ * worker threads, the primary commit processor thread runs the pipeline directly.
  *
- * Typical (default) thread counts are: on a 32 core machine, 1 commit
- * processor thread and 32 worker threads.
+ * Typical (default) thread counts are: on a 32 core machine, 1 commit processor thread and 32 worker threads.
  *
- * Multi-threading constraints:
- *   - Each session's requests must be processed in order.
- *   - Write requests must be processed in zxid order
- *   - Must ensure no race condition between writes in one session that would
- *     trigger a watch being set by a read request in another session
+ * Multi-threading constraints: - Each session's requests must be processed in order. - Write requests must be processed in zxid order - Must ensure no race condition between writes in one session
+ * that would trigger a watch being set by a read request in another session
  *
- * The current implementation solves the third constraint by simply allowing no
- * read requests to be processed in parallel with write requests.
+ * The current implementation solves the third constraint by simply allowing no read requests to be processed in parallel with write requests.
  */
 public class CommitProcessor extends ZooKeeperCriticalThread implements
         RequestProcessor {
-    /** Default: numCores */
+    /**
+     * Default: numCores
+     */
     public static final String ZOOKEEPER_COMMIT_PROC_NUM_WORKER_THREADS =
             "zookeeper.commitProcessor.numWorkerThreads";
-    /** Default worker pool shutdown timeout in ms: 5000 (5s) */
+    /**
+     * Default worker pool shutdown timeout in ms: 5000 (5s)
+     */
     public static final String ZOOKEEPER_COMMIT_PROC_SHUTDOWN_TIMEOUT =
             "zookeeper.commitProcessor.shutdownTimeout";
     private static final Logger LOG = LoggerFactory.getLogger(CommitProcessor.class);
@@ -78,22 +68,27 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
     protected final LinkedBlockingQueue<Request> committedRequests =
             new LinkedBlockingQueue<Request>();
 
-    /** Request for which we are currently awaiting a commit */
+    /**
+     * Request for which we are currently awaiting a commit
+     */
     protected final AtomicReference<Request> nextPending =
             new AtomicReference<Request>();
-    /** Request currently being committed (ie, sent off to next processor) */
+    /**
+     * Request currently being committed (ie, sent off to next processor)
+     */
     private final AtomicReference<Request> currentlyCommitting =
             new AtomicReference<Request>();
 
-    /** The number of requests currently being processed */
+    /**
+     * The number of requests currently being processed
+     */
     protected AtomicInteger numRequestsProcessing = new AtomicInteger(0);
     protected volatile boolean stopped = true;
     protected WorkerService workerPool;
     RequestProcessor nextProcessor;
     /**
-     * This flag indicates whether we need to wait for a response to come back from the
-     * leader or we just let the sync operation flow through like a read. The flag will
-     * be true if the CommitProcessor is in a Leader pipeline.
+     * This flag indicates whether we need to wait for a response to come back from the leader or we just let the sync operation flow through like a read. The flag will be true if the CommitProcessor
+     * is in a Leader pipeline.
      */
     boolean matchSyncs;
     private long workerShutdownTimeoutMS;
@@ -146,9 +141,10 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
             while (!stopped) {
                 synchronized (this) {
                     while (
-                            !stopped &&
-                                    ((queuedRequests.isEmpty() || isWaitingForCommit() || isProcessingCommit()) &&
-                                            (committedRequests.isEmpty() || isProcessingRequest()))) {
+                            !stopped
+                                    &&
+                            ((queuedRequests.isEmpty() || isWaitingForCommit() || isProcessingCommit()) && (committedRequests.isEmpty() || isProcessingRequest())))
+                    {
                         wait();
                     }
                 }
@@ -251,8 +247,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
     }
 
     /**
-     * Schedule final request processing; if a worker thread pool is not being
-     * used, processing is done directly by this thread.
+     * Schedule final request processing; if a worker thread pool is not being used, processing is done directly by this thread.
      */
     private void sendToNextProcessor(Request request) {
         numRequestsProcessing.incrementAndGet();
@@ -313,8 +308,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
     }
 
     /**
-     * CommitWorkRequest is a small wrapper class to allow
-     * downstream processing to be run using the WorkerService
+     * CommitWorkRequest is a small wrapper class to allow downstream processing to be run using the WorkerService
      */
     private class CommitWorkRequest extends WorkerService.WorkRequest {
         private final Request request;

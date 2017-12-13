@@ -62,13 +62,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * This Request processor actually applies any transaction associated with a
- * request and services any queries. It is always at the end of a
- * RequestProcessor chain (hence the name), so it does not have a nextProcessor
- * member.
+ * This Request processor actually applies any transaction associated with a request and services any queries. It is always at the end of a RequestProcessor chain (hence the name), so it does not have
+ * a nextProcessor member.
  *
- * This RequestProcessor counts on ZooKeeperServer to populate the
- * outstandingRequests member of ZooKeeperServer.
+ * This RequestProcessor counts on ZooKeeperServer to populate the outstandingRequests member of ZooKeeperServer.
  */
 public class FinalRequestProcessor implements RequestProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(FinalRequestProcessor.class);
@@ -102,12 +99,10 @@ public class FinalRequestProcessor implements RequestProcessor {
                 TxnHeader hdr = request.getHdr();
                 Record txn = request.getTxn();
                 long zxid = hdr.getZxid();
-                while (!zks.outstandingChanges.isEmpty()
-                        && zks.outstandingChanges.get(0).zxid <= zxid) {
+                while (!zks.outstandingChanges.isEmpty() && zks.outstandingChanges.get(0).zxid <= zxid) {
                     ChangeRecord cr = zks.outstandingChanges.remove(0);
                     if (cr.zxid < zxid) {
-                        LOG.warn("Zxid outstanding " + cr.zxid
-                                + " is less than current " + zxid);
+                        LOG.warn("Zxid outstanding " + cr.zxid + " is less than current " + zxid);
                     }
                     if (zks.outstandingChangesForPath.get(cr.path) == cr) {
                         zks.outstandingChangesForPath.remove(cr.path);
@@ -173,22 +168,15 @@ public class FinalRequestProcessor implements RequestProcessor {
             switch (request.type) {
                 case OpCode.ping: {
                     zks.serverStats().updateLatency(request.createTime);
-
                     lastOp = "PING";
-                    cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp,
-                            request.createTime, Time.currentElapsedTime());
-
-                    cnxn.sendResponse(new ReplyHeader(-2,
-                            zks.getZKDatabase().getDataTreeLastProcessedZxid(), 0), null, "response");
+                    cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp, request.createTime, Time.currentElapsedTime());
+                    cnxn.sendResponse(new ReplyHeader(-2, zks.getZKDatabase().getDataTreeLastProcessedZxid(), 0), null, "response");
                     return;
                 }
                 case OpCode.createSession: {
                     zks.serverStats().updateLatency(request.createTime);
-
                     lastOp = "SESS";
-                    cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp,
-                            request.createTime, Time.currentElapsedTime());
-
+                    cnxn.updateStatsForResponse(request.cxid, request.zxid, lastOp, request.createTime, Time.currentElapsedTime());
                     zks.finishSessionInit(request.cnxn, true);
                     return;
                 }
@@ -304,8 +292,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                 case OpCode.getData: {
                     lastOp = "GETD";
                     GetDataRequest getDataRequest = new GetDataRequest();
-                    ByteBufferInputStream.byteBuffer2Record(request.request,
-                            getDataRequest);
+                    ByteBufferInputStream.byteBuffer2Record(request.request, getDataRequest);
                     DataNode n = zks.getZKDatabase().getNode(getDataRequest.getPath());
                     if (n == null) {
                         throw new KeeperException.NoNodeException();
@@ -314,9 +301,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                     synchronized (n) {
                         aclL = n.acl;
                     }
-                    PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().convertLong(aclL),
-                            ZooDefs.Perms.READ,
-                            request.authInfo);
+                    PrepRequestProcessor.checkACL(zks, zks.getZKDatabase().convertLong(aclL), ZooDefs.Perms.READ, request.authInfo);
                     Stat stat = new Stat();
                     byte b[] = zks.getZKDatabase().getData(getDataRequest.getPath(), stat,
                             getDataRequest.getWatch() ? cnxn : null);
@@ -452,13 +437,9 @@ public class FinalRequestProcessor implements RequestProcessor {
         }
 
         long lastZxid = zks.getZKDatabase().getDataTreeLastProcessedZxid();
-        ReplyHeader hdr =
-                new ReplyHeader(request.cxid, lastZxid, err.intValue());
-
+        ReplyHeader hdr = new ReplyHeader(request.cxid, lastZxid, err.intValue());
         zks.serverStats().updateLatency(request.createTime);
-        cnxn.updateStatsForResponse(request.cxid, lastZxid, lastOp,
-                request.createTime, Time.currentElapsedTime());
-
+        cnxn.updateStatsForResponse(request.cxid, lastZxid, lastOp, request.createTime, Time.currentElapsedTime());
         try {
             cnxn.sendResponse(hdr, rsp, "response");
             if (request.type == OpCode.closeSession) {

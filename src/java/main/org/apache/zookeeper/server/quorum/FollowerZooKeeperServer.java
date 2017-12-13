@@ -68,11 +68,22 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         syncProcessor.start();
     }
 
+    /**
+     * 将操作记录到事务日志中
+     * @param hdr  消息头
+     * @param txn  消息体
+     */
     public void logRequest(TxnHeader hdr, Record txn) {
         Request request = new Request(hdr.getClientId(), hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
         if ((request.zxid & 0xffffffffL) != 0) {
+            /**
+             * 加入到等待commit的队列中
+             */
             pendingTxns.add(request);
         }
+        /**
+         * 加入到syncProcessor线程处理队列中
+         */
         syncProcessor.processRequest(request);
     }
 
