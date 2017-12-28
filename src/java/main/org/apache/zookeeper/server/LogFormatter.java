@@ -35,6 +35,9 @@ public class LogFormatter {
      * @param args
      */
     public static void main(String[] args) throws Exception {
+
+        args=new String[]{"/tmp/zookeeper/version-2/log.10"};
+
         if (args.length != 1) {
             System.err.println("USAGE: LogFormatter log_file");
             System.exit(2);

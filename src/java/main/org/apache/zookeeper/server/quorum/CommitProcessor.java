@@ -65,8 +65,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
     /**
      * Requests that have been committed.
      */
-    protected final LinkedBlockingQueue<Request> committedRequests =
-            new LinkedBlockingQueue<Request>();
+    protected final LinkedBlockingQueue<Request> committedRequests = new LinkedBlockingQueue<Request>();
 
     /**
      * Request for which we are currently awaiting a commit
@@ -183,10 +182,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
      */
     protected void processCommitted() {
         Request request;
-
-        if (!stopped && !isProcessingRequest() &&
-                (committedRequests.peek() != null)) {
-
+        if (!stopped && !isProcessingRequest() && (committedRequests.peek() != null)) {
             /*
              * ZOOKEEPER-1863: continue only if there is no new request
              * waiting in queuedRequests or it is waiting for a
@@ -204,9 +200,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
              * properly.
              */
             Request pending = nextPending.get();
-            if (pending != null &&
-                    pending.sessionId == request.sessionId &&
-                    pending.cxid == request.cxid) {
+            if (pending != null && pending.sessionId == request.sessionId && pending.cxid == request.cxid) {
                 // we want to send our version of the request.
                 // the pointer to the connection in the request
                 pending.setHdr(request.getHdr());

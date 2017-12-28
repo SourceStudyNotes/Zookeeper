@@ -59,11 +59,19 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
 
     @Override
     protected void setupRequestProcessors() {
+        //PROPOSAL和COMMIT是通过pendingTxns连接起来的
+
+        //COMMIT--处理leader发来的数据（Leader连接hander）
         RequestProcessor finalProcessor = new FinalRequestProcessor(this);
         commitProcessor = new CommitProcessor(finalProcessor, Long.toString(getServerId()), true, getZooKeeperServerListener());
         commitProcessor.start();
+
+        //处理和客户端的数据（客户端连接hander）
         firstProcessor = new FollowerRequestProcessor(this, commitProcessor);
         ((FollowerRequestProcessor) firstProcessor).start();
+
+
+        //PROPOSAL--处理leader发来的数据（Leader连接hander）
         syncProcessor = new SyncRequestProcessor(this, new SendAckRequestProcessor((Learner) getFollower()));
         syncProcessor.start();
     }

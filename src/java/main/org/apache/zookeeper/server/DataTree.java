@@ -547,8 +547,7 @@ public class DataTree {
      *            the current zxid
      * @throws KeeperException.NoNodeException
      */
-    public void deleteNode(String path, long zxid)
-            throws KeeperException.NoNodeException {
+    public void deleteNode(String path, long zxid) throws KeeperException.NoNodeException {
         int lastSlash = path.lastIndexOf('/');
         String parentName = path.substring(0, lastSlash);
         String childName = path.substring(lastSlash + 1);
@@ -599,11 +598,9 @@ public class DataTree {
             ZooTrace.logTraceMessage(LOG, ZooTrace.EVENT_DELIVERY_TRACE_MASK,
                     "childWatches.triggerWatch " + parentName);
         }
-        Set<Watcher> processed = dataWatches.triggerWatch(path,
-                EventType.NodeDeleted);
+        Set<Watcher> processed = dataWatches.triggerWatch(path, EventType.NodeDeleted);
         childWatches.triggerWatch(path, EventType.NodeDeleted, processed);
-        childWatches.triggerWatch("".equals(parentName) ? "/" : parentName,
-                EventType.NodeChildrenChanged);
+        childWatches.triggerWatch("".equals(parentName) ? "/" : parentName, EventType.NodeChildrenChanged);
     }
 
     public Stat setData(String path, byte data[], int version, long zxid,
@@ -868,10 +865,7 @@ public class DataTree {
                         if (failed) {
                             assert (subtxn.getType() == OpCode.error);
                         }
-
-                        TxnHeader subHdr = new TxnHeader(header.getClientId(), header.getCxid(),
-                                header.getZxid(), header.getTime(),
-                                subtxn.getType());
+                        TxnHeader subHdr = new TxnHeader(header.getClientId(), header.getCxid(), header.getZxid(), header.getTime(), subtxn.getType());
                         ProcessTxnResult subRc = processTxn(subHdr, record);
                         rc.multiResult.add(subRc);
                         if (subRc.err != 0 && rc.err == 0) {
@@ -922,24 +916,19 @@ public class DataTree {
          * Note, such failures on DT should be seen only during
          * restore.
          */
-        if (header.getType() == OpCode.create &&
-                rc.err == Code.NODEEXISTS.intValue()) {
-            LOG.debug("Adjusting parent cversion for Txn: " + header.getType() +
-                    " path:" + rc.path + " err: " + rc.err);
+        if (header.getType() == OpCode.create && rc.err == Code.NODEEXISTS.intValue()) {
+            LOG.debug("Adjusting parent cversion for Txn: " + header.getType() + " path:" + rc.path + " err: " + rc.err);
             int lastSlash = rc.path.lastIndexOf('/');
             String parentName = rc.path.substring(0, lastSlash);
             CreateTxn cTxn = (CreateTxn) txn;
             try {
-                setCversionPzxid(parentName, cTxn.getParentCVersion(),
-                        header.getZxid());
+                setCversionPzxid(parentName, cTxn.getParentCVersion(), header.getZxid());
             } catch (KeeperException.NoNodeException e) {
-                LOG.error("Failed to set parent cversion for: " +
-                        parentName, e);
+                LOG.error("Failed to set parent cversion for: " + parentName, e);
                 rc.err = e.code().intValue();
             }
         } else if (rc.err != Code.OK.intValue()) {
-            LOG.debug("Ignoring processTxn failure hdr: " + header.getType() +
-                    " : error: " + rc.err);
+            LOG.debug("Ignoring processTxn failure hdr: " + header.getType() + " : error: " + rc.err);
         }
         return rc;
     }
@@ -957,15 +946,10 @@ public class DataTree {
                 try {
                     deleteNode(path, zxid);
                     if (LOG.isDebugEnabled()) {
-                        LOG
-                                .debug("Deleting ephemeral node " + path
-                                        + " for session 0x"
-                                        + Long.toHexString(session));
+                        LOG.debug("Deleting ephemeral node " + path + " for session 0x" + Long.toHexString(session));
                     }
                 } catch (NoNodeException e) {
-                    LOG.warn("Ignoring NoNodeException for path " + path
-                            + " while removing ephemeral for dead session 0x"
-                            + Long.toHexString(session));
+                    LOG.warn("Ignoring NoNodeException for path " + path + " while removing ephemeral for dead session 0x" + Long.toHexString(session));
                 }
             }
         }

@@ -1034,9 +1034,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                 request.request.rewind();
                 sessionTracker.addSession(request.sessionId, timeout);
             } else {
-                LOG.warn("*****>>>>> Got "
-                        + txn.getClass() + " "
-                        + txn.toString());
+                LOG.warn("*****>>>>> Got " + txn.getClass() + " " + txn.toString());
             }
         } else if (opCode == OpCode.closeSession) {
             sessionTracker.removeSession(sessionId);

@@ -153,8 +153,7 @@ public class LeaderSessionTracker extends UpgradeableSessionTracker {
          * if local session is not enabled or it used to be our local session
          * throw sessions expires
          */
-        if (!localSessionsEnabled
-                || (getServerIdFromSessionId(sessionId) == serverId)) {
+        if (!localSessionsEnabled || (getServerIdFromSessionId(sessionId) == serverId)) {
             throw new SessionExpiredException();
         }
     }

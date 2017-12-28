@@ -77,6 +77,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
             int logCount = 0;
             // we do this in an attempt to ensure that not all of the servers
             // in the ensemble take a snapshot at the same time
+            //防止同一时刻多个节点同时保存快照
             int randRoll = r.nextInt(snapCount / 2);
             while (true) {
                 Request si = null;
@@ -85,6 +86,7 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
                 } else {
                     si = queuedRequests.poll();
                     if (si == null) {
+
                         flush(toFlush);
                         continue;
                     }
@@ -144,6 +146,13 @@ public class SyncRequestProcessor extends ZooKeeperCriticalThread implements Req
         LOG.info("SyncRequestProcessor exited!");
     }
 
+    /**
+     * 1.将所有没有刷新到磁盘的数据刷新到磁盘。
+     * 2.将所有缓存在和leader连接的数据刷新到socket中。
+     * @param toFlush
+     * @throws IOException
+     * @throws RequestProcessorException
+     */
     private void flush(LinkedList<Request> toFlush) throws IOException, RequestProcessorException {
         if (toFlush.isEmpty())
             return;

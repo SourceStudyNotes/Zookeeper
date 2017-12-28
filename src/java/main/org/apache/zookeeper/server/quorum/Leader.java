@@ -434,8 +434,7 @@ public class Leader {
             try {
                 waitForNewLeaderAck(self.getId(), zk.getZxid(), LearnerType.PARTICIPANT);
             } catch (InterruptedException e) {
-                shutdown("Waiting for a quorum of followers, only synced with sids: [ "
-                        + newLeaderProposal.ackSetsToString() + " ]");
+                shutdown("Waiting for a quorum of followers, only synced with sids: [ " + newLeaderProposal.ackSetsToString() + " ]");
                 HashSet<Long> followerSet = new HashSet<Long>();
 
                 for (LearnerHandler f : getLearners()) {
@@ -513,11 +512,8 @@ public class Leader {
                     // quorum of current (and potentially next pending) view.
                     SyncedLearnerTracker syncedAckSet = new SyncedLearnerTracker();
                     syncedAckSet.addQuorumVerifier(self.getQuorumVerifier());
-                    if (self.getLastSeenQuorumVerifier() != null
-                            && self.getLastSeenQuorumVerifier().getVersion() > self
-                            .getQuorumVerifier().getVersion()) {
-                        syncedAckSet.addQuorumVerifier(self
-                                .getLastSeenQuorumVerifier());
+                    if (self.getLastSeenQuorumVerifier() != null && self.getLastSeenQuorumVerifier().getVersion() > self.getQuorumVerifier().getVersion()) {
+                        syncedAckSet.addQuorumVerifier(self.getLastSeenQuorumVerifier());
                     }
 
                     syncedAckSet.addAck(self.getId());
@@ -531,8 +527,7 @@ public class Leader {
                     if (!tickSkip && !syncedAckSet.hasAllQuorums()) {
                         // Lost quorum of last committed and/or last proposed
                         // config, shutdown
-                        shutdown("Not sufficient followers synced, only synced with sids: [ "
-                                + syncedAckSet.ackSetsToString() + " ]");
+                        shutdown("Not sufficient followers synced, only synced with sids: [ " + syncedAckSet.ackSetsToString() + " ]");
                         // make sure the order is the same!
                         // the leader goes to looking
                         return;
@@ -725,8 +720,7 @@ public class Leader {
             LOG.trace("Ack zxid: 0x{}", Long.toHexString(zxid));
             for (Proposal p : outstandingProposals.values()) {
                 long packetZxid = p.packet.getZxid();
-                LOG.trace("outstanding proposal: 0x{}",
-                        Long.toHexString(packetZxid));
+                LOG.trace("outstanding proposal: 0x{}", Long.toHexString(packetZxid));
             }
             LOG.trace("outstanding proposals all");
         }
@@ -757,8 +751,7 @@ public class Leader {
         }
         Proposal p = outstandingProposals.get(zxid);
         if (p == null) {
-            LOG.warn("Trying to commit future proposal: zxid 0x{} from {}",
-                    Long.toHexString(zxid), followerAddr);
+            LOG.warn("Trying to commit future proposal: zxid 0x{} from {}", Long.toHexString(zxid), followerAddr);
             return;
         }
 

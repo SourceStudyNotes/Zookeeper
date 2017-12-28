@@ -817,8 +817,7 @@ public class PrepRequestProcessor extends ZooKeeperCriticalThread implements
                 case OpCode.setWatches:
                 case OpCode.checkWatches:
                 case OpCode.removeWatches:
-                    zks.sessionTracker.checkSession(request.sessionId,
-                            request.getOwner());
+                    zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                     break;
                 default:
                     LOG.warn("unknown type " + request.type);

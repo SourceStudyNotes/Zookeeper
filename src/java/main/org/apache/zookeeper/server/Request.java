@@ -26,6 +26,7 @@ import java.util.List;
  * onto the request as it is processed.
  */
 public class Request {
+    //停止整个正在运行的等待执行任务的线程
     public final static Request requestOfDeath = new Request(null, 0, 0, 0, null, null);
     public final long sessionId;
     public final int cxid;

@@ -112,8 +112,7 @@ public class FileTxnLog implements TxnLog {
     long dbId;
     long currentSize;
     File logFileWrite = null;
-    private LinkedList<FileOutputStream> streamsToFlush =
-            new LinkedList<FileOutputStream>();
+    private LinkedList<FileOutputStream> streamsToFlush = new LinkedList<FileOutputStream>();
 
     /**
      * constructor for FileTxnLog. Take the directory where the txnlogs are stored
@@ -232,18 +231,13 @@ public class FileTxnLog implements TxnLog {
             throws IOException {
         if (hdr != null) {
             if (hdr.getZxid() <= lastZxidSeen) {
-                LOG.warn("Current zxid " + hdr.getZxid()
-                        + " is <= " + lastZxidSeen + " for "
-                        + hdr.getType());
+                LOG.warn("Current zxid " + hdr.getZxid() + " is <= " + lastZxidSeen + " for " + hdr.getType());
             }
             if (logStream == null) {
                 if (LOG.isInfoEnabled()) {
-                    LOG.info("Creating new log file: log." +
-                            Long.toHexString(hdr.getZxid()));
+                    LOG.info("Creating new log file: log." + Long.toHexString(hdr.getZxid()));
                 }
-
-                logFileWrite = new File(logDir, ("log." +
-                        Long.toHexString(hdr.getZxid())));
+                logFileWrite = new File(logDir, ("log." + Long.toHexString(hdr.getZxid())));
                 fos = new FileOutputStream(logFileWrite);
                 logStream = new BufferedOutputStream(fos);
                 oa = BinaryOutputArchive.getArchive(logStream);
@@ -252,19 +246,19 @@ public class FileTxnLog implements TxnLog {
                 // Make sure that the magic number is written before padding.
                 logStream.flush();
                 currentSize = fos.getChannel().position();
+
+                //加入待flush列表，等待this.commit()将数据刷新到磁盘上。
                 streamsToFlush.add(fos);
             }
             padFile(fos);
             byte[] buf = Util.marshallTxnEntry(hdr, txn);
             if (buf == null || buf.length == 0) {
-                throw new IOException("Faulty serialization for header " +
-                        "and txn");
+                throw new IOException("Faulty serialization for header " + "and txn");
             }
             Checksum crc = makeChecksumAlgorithm();
             crc.update(buf, 0, buf.length);
             oa.writeLong(crc.getValue(), "txnEntryCRC");
             Util.writeTxnBytes(oa, buf);
-
             return true;
         }
         return false;
@@ -331,17 +325,10 @@ public class FileTxnLog implements TxnLog {
             log.flush();
             if (forceSync) {
                 long startSyncNS = System.nanoTime();
-
                 log.getChannel().force(false);
-
-                long syncElapsedMS =
-                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startSyncNS);
+                long syncElapsedMS = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startSyncNS);
                 if (syncElapsedMS > fsyncWarningThresholdMS) {
-                    LOG.warn("fsync-ing the write ahead log in "
-                            + Thread.currentThread().getName()
-                            + " took " + syncElapsedMS
-                            + "ms which will adversely effect operation latency. "
-                            + "See the ZooKeeper troubleshooting guide");
+                    LOG.warn("fsync-ing the write ahead log in " + Thread.currentThread().getName() + " took " + syncElapsedMS + "ms which will adversely effect operation latency. " + "See the ZooKeeper troubleshooting guide");
                 }
             }
         }
