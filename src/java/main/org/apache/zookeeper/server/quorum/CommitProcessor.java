@@ -139,9 +139,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
         try {
             while (!stopped) {
                 synchronized (this) {
-                    while (
-                            !stopped
-                                    &&
+                    while (!stopped &&
                             ((queuedRequests.isEmpty() || isWaitingForCommit() || isProcessingCommit()) && (committedRequests.isEmpty() || isProcessingRequest())))
                     {
                         wait();
@@ -181,6 +179,8 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
     protected void processCommitted() {
         Request request;
         if (!stopped && !isProcessingRequest() && (committedRequests.peek() != null)) {
+
+            //后面的processor当前没有正在处理的请求。
             /*
              * ZOOKEEPER-1863: continue only if there is no new request
              * waiting in queuedRequests or it is waiting for a
@@ -189,6 +189,7 @@ public class CommitProcessor extends ZooKeeperCriticalThread implements
             if (!isWaitingForCommit() && !queuedRequests.isEmpty()) {
                 return;
             }
+
             request = committedRequests.poll();
 
             /*

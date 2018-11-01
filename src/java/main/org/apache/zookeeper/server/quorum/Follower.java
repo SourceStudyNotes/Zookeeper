@@ -63,6 +63,7 @@ public class Follower extends Learner {
         try {
             InetSocketAddress addr = findLeader();
             try {
+                //连接到主节点
                 connectToLeader(addr);
                 long newEpochZxid = registerWithLeader(Leader.FOLLOWERINFO);
                 if (self.isReconfigStateChange())
@@ -76,7 +77,7 @@ public class Follower extends Learner {
                     throw new IOException("Error: Epoch of leader is lower");
                 }
                 /**
-                 * 1.与Leader数据同步
+                 * 与Leader数据同步
                  */
                 syncWithLeader(newEpochZxid);
                 QuorumPacket qp = new QuorumPacket();
