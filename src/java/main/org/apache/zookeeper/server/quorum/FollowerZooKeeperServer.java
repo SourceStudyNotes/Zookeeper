@@ -66,7 +66,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         commitProcessor = new CommitProcessor(finalProcessor, Long.toString(getServerId()), true, getZooKeeperServerListener());
         commitProcessor.start();
 
-        //处理和客户端的数据（客户端连接hander）
+        //处理和客户端的数据（客户端连接hander），如果有写消息，会将消息转发给leader
         firstProcessor = new FollowerRequestProcessor(this, commitProcessor);
         ((FollowerRequestProcessor) firstProcessor).start();
 
@@ -85,7 +85,7 @@ public class FollowerZooKeeperServer extends LearnerZooKeeperServer {
         Request request = new Request(hdr.getClientId(), hdr.getCxid(), hdr.getType(), hdr, txn, hdr.getZxid());
         if ((request.zxid & 0xffffffffL) != 0) {
             /**
-             * 加入到等待commit的队列中
+             * 加入到等待commit的队列中，等待leader发送commit消息过来
              */
             pendingTxns.add(request);
         }
